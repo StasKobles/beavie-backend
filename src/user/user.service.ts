@@ -6,6 +6,8 @@ import { UsernamesService } from '../usernames/usernames.service';
 import { BalanceService } from '../balance/balance.service';
 import { DailyBonusService } from '../daily-bonus/daily-bonus.service';
 import { ReferralService } from '../referral/referral.service';
+import { UserQuestService } from 'src/user-quest/user-quest.service';
+import { UserUpgradeService } from 'src/user-upgrade/user-upgrade.service';
 
 @Injectable()
 export class UserService {
@@ -18,6 +20,8 @@ export class UserService {
     private balanceService: BalanceService,
     private dailyBonusService: DailyBonusService,
     private referralService: ReferralService,
+    private userQuestService: UserQuestService,
+    private userUpgradeService: UserUpgradeService,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -94,5 +98,25 @@ export class UserService {
     );
 
     return this.findOne(telegram_id);
+  }
+
+  async getUserStats(telegram_id: number): Promise<any> {
+    const user = await this.findOne(telegram_id);
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const balance = await this.balanceService.findOne(telegram_id);
+    const userUpgrades = await this.userUpgradeService.findOne(telegram_id);
+    const userQuests = await this.userQuestService.findOne(telegram_id);
+    const dailyBonus = await this.dailyBonusService.findOne(telegram_id);
+
+    return {
+      user,
+      balance: balance ? balance.balance : 0,
+      upgrades: userUpgrades ? userUpgrades.upgrades : [],
+      quests: userQuests ? userQuests.quests : [],
+      daily_streak: dailyBonus ? dailyBonus.daily_streak : 0,
+    };
   }
 }

@@ -10,5 +10,6 @@ import { BalanceModule } from '../balance/balance.module';
   imports: [TypeOrmModule.forFeature([UserQuest]), QuestModule, BalanceModule],
   providers: [UserQuestService],
   controllers: [UserQuestController],
+  exports: [UserQuestService],
 })
 export class UserQuestModule {}

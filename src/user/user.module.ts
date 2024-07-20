@@ -7,6 +7,8 @@ import { UsernamesModule } from '../usernames/usernames.module';
 import { BalanceModule } from '../balance/balance.module';
 import { DailyBonusModule } from '../daily-bonus/daily-bonus.module'; // Импортируем DailyBonusModule
 import { ReferralModule } from '../referral/referral.module';
+import { UserQuestModule } from 'src/user-quest/user-quest.module';
+import { UserUpgradeModule } from 'src/user-upgrade/user-upgrade.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { ReferralModule } from '../referral/referral.module';
     BalanceModule, // Импортируем модуль Balance
     DailyBonusModule, // Импортируем модуль DailyBonus
     ReferralModule, // Импортируем модуль Referral
+    UserQuestModule, // Импортируйте UserQuestModule
+    UserUpgradeModule, // Импортируйте UserUpgradeModule
   ],
   providers: [UserService],
   controllers: [UserController],

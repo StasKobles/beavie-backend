@@ -4,6 +4,8 @@ import {
   Body,
   HttpException,
   HttpStatus,
+  Get,
+  Param,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.entity';
@@ -35,5 +37,9 @@ export class UserController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+  @Get('stats/:telegram_id')
+  async getUserStats(@Param('telegram_id') telegram_id: number): Promise<any> {
+    return this.userService.getUserStats(telegram_id);
   }
 }
