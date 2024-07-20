@@ -8,5 +8,6 @@ import { Quest } from './quest.entity';
   imports: [TypeOrmModule.forFeature([Quest])],
   providers: [QuestService],
   controllers: [QuestController],
+  exports: [QuestService],
 })
 export class QuestModule {}

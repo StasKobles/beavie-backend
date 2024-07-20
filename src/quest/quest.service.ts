@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Quest } from './quest.entity';
@@ -12,5 +12,12 @@ export class QuestService {
 
   async findAll(): Promise<Quest[]> {
     return this.questRepository.find();
+  }
+  async findOne(quest_id: number): Promise<Quest> {
+    const quest = await this.questRepository.findOne({ where: { quest_id } });
+    if (!quest) {
+      throw new NotFoundException('Quest not found');
+    }
+    return quest;
   }
 }
