@@ -1,13 +1,14 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Referral } from './referral.entity';
 import { BalanceService } from '../balance/balance.service';
 import { UsernamesService } from '../usernames/usernames.service';
+import { ReferralResponseDto } from './dto/referral-response.dto';
+import { Referral } from './referral.entity';
 
 @Injectable()
 export class ReferralService {
@@ -18,7 +19,7 @@ export class ReferralService {
     private usernamesService: UsernamesService,
   ) {}
 
-  async findOne(telegram_id: number): Promise<Referral> {
+  async findOne(telegram_id: number): Promise<ReferralResponseDto> {
     const referral = await this.referralRepository.findOne({
       where: { telegram_id },
     });
@@ -38,7 +39,7 @@ export class ReferralService {
       }),
     );
 
-    return { ...referral, ref_ids: refs };
+    return { telegram_id: referral.telegram_id, ref_ids: refs };
   }
 
   async addReferral(telegram_id: number, ref_id: number): Promise<Referral> {
