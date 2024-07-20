@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body } from '@nestjs/common';
 import { BalanceService } from './balance.service';
 import { Balance } from './balance.entity';
 
-@Controller('balance')
+@Controller('balances')
 export class BalanceController {
   constructor(private readonly balanceService: BalanceService) {}
 
@@ -11,13 +11,18 @@ export class BalanceController {
     return this.balanceService.findOne(telegram_id);
   }
 
-  @Post()
+  @Post('update')
   updateBalance(
-    @Body() updateData: { telegram_id: number; new_balance: number },
+    @Body() data: { telegram_id: number; new_balance: number },
   ): Promise<Balance> {
     return this.balanceService.updateBalance(
-      updateData.telegram_id,
-      updateData.new_balance,
+      data.telegram_id,
+      data.new_balance,
     );
+  }
+
+  @Get('leaderboard/top')
+  getTopBalances(): Promise<any[]> {
+    return this.balanceService.getTopBalances();
   }
 }
