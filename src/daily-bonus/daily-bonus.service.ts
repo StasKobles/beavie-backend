@@ -59,6 +59,15 @@ export class DailyBonusService {
     }
   }
 
+  async createDailyBonus(telegram_id: number): Promise<DailyBonus> {
+    const dailyBonus = this.dailyBonusRepository.create({
+      telegram_id,
+      daily_streak: 1,
+      reward_claimed_today: false,
+    });
+    return this.dailyBonusRepository.save(dailyBonus);
+  }
+
   async resetDailyStreaks(): Promise<void> {
     const users = await this.dailyBonusRepository.find();
     for (const user of users) {

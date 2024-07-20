@@ -1,7 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
+import { UsernamesService } from '../usernames/usernames.service';
+import { BalanceService } from '../balance/balance.service';
+import { DailyBonusService } from '../daily-bonus/daily-bonus.service';
+import { ReferralService } from '../referral/referral.service';
 
 @Injectable()
 export class UserService {
@@ -10,6 +14,10 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private usernamesService: UsernamesService,
+    private balanceService: BalanceService,
+    private dailyBonusService: DailyBonusService,
+    private referralService: ReferralService,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -34,5 +42,57 @@ export class UserService {
   async delete(telegram_id: number): Promise<void> {
     await this.userRepository.delete({ telegram_id });
     this.logger.log(`User deleted: ${telegram_id}`);
+  }
+
+  async initUser(
+    telegram_id: number,
+    ref_id: number | null,
+    username: string,
+    is_premium: boolean,
+  ): Promise<User> {
+    this.logger.log('Received initUser request:', {
+      telegram_id,
+      ref_id,
+      username,
+      is_premium,
+    });
+
+    const existingUser = await this.findOne(telegram_id);
+    const award = is_premium ? 100000 : 20000;
+
+    if (existingUser) {
+      return existingUser;
+    }
+
+    if (!username || username.trim() === '') {
+      throw new HttpException(
+        { error: 'Username is required' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    await this.userRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        const newUser = this.userRepository.create({
+          telegram_id,
+          registered_at: new Date(),
+          status: 'active',
+        });
+        await transactionalEntityManager.save(newUser);
+
+        await this.usernamesService.create(telegram_id, username);
+
+        if (ref_id) {
+          await this.referralService.addReferral(telegram_id, ref_id);
+          await this.balanceService.updateBalance(telegram_id, award);
+        } else {
+          await this.balanceService.updateBalance(telegram_id, 0);
+        }
+
+        await this.dailyBonusService.createDailyBonus(telegram_id);
+      },
+    );
+
+    return this.findOne(telegram_id);
   }
 }

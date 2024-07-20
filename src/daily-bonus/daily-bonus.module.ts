@@ -15,5 +15,6 @@ import { BalanceModule } from '../balance/balance.module'; // Импортиру
   ],
   providers: [DailyBonusService, DailyBonusScheduler],
   controllers: [DailyBonusController],
+  exports: [DailyBonusService],
 })
 export class DailyBonusModule {}

@@ -1,28 +1,39 @@
-import { Controller, Get, Post, Delete, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.entity';
 
-@Controller('user')
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get()
-  findAll(): Promise<User[]> {
-    return this.userService.findAll();
-  }
-
-  @Get(':telegram_id')
-  findOne(@Param('telegram_id') telegram_id: number): Promise<User> {
-    return this.userService.findOne(telegram_id);
-  }
-
-  @Post()
-  create(@Body() user: Partial<User>): Promise<User> {
-    return this.userService.create(user);
-  }
-
-  @Delete(':telegram_id')
-  delete(@Param('telegram_id') telegram_id: number): Promise<void> {
-    return this.userService.delete(telegram_id);
+  @Post('init')
+  async initUser(
+    @Body()
+    data: {
+      telegram_id: number;
+      ref_id: number | null;
+      username: string;
+      is_premium: boolean;
+    },
+  ): Promise<User> {
+    try {
+      return await this.userService.initUser(
+        data.telegram_id,
+        data.ref_id,
+        data.username,
+        data.is_premium,
+      );
+    } catch (error) {
+      throw new HttpException(
+        { error: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
