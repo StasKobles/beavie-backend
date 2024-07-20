@@ -25,4 +25,11 @@ export class BalanceController {
   getTopBalances(): Promise<any[]> {
     return this.balanceService.getTopBalances();
   }
+
+  @Get('update-time/:telegram_id')
+  getBalanceAndUpdateTime(
+    @Param('telegram_id') telegram_id: number,
+  ): Promise<Balance> {
+    return this.balanceService.getBalanceAndUpdateTime(telegram_id);
+  }
 }

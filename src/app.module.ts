@@ -11,6 +11,8 @@ import { UpgradeModule } from './upgrade/upgrade.module';
 import { UserUpgradeModule } from './user-upgrade/user-upgrade.module';
 import { UsernamesModule } from './usernames/usernames.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AfkFarmModule } from './afk-farm/afk-farm.module';
+import { BalanceUpdateModule } from './balance-update/balance-update.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     UpgradeModule,
     UserUpgradeModule,
     UsernamesModule,
+    AfkFarmModule,
+    BalanceUpdateModule,
     ScheduleModule.forRoot(),
   ],
 })

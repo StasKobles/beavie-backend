@@ -8,5 +8,6 @@ import { Upgrade } from './upgrade.entity';
   imports: [TypeOrmModule.forFeature([Upgrade])],
   providers: [UpgradeService],
   controllers: [UpgradeController],
+  exports: [UpgradeService],
 })
 export class UpgradeModule {}

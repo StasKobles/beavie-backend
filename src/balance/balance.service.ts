@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Balance } from './balance.entity';
 import { UsernamesService } from '../usernames/usernames.service';
+import { AfkFarmService } from '../afk-farm/afk-farm.service';
 
 @Injectable()
 export class BalanceService {
@@ -10,6 +11,7 @@ export class BalanceService {
     @InjectRepository(Balance)
     private balanceRepository: Repository<Balance>,
     private usernamesService: UsernamesService,
+    private afkFarmService: AfkFarmService,
   ) {}
 
   async findOne(telegram_id: number): Promise<Balance> {
@@ -55,5 +57,11 @@ export class BalanceService {
     );
 
     return leaderBoard;
+  }
+
+  async getBalanceAndUpdateTime(telegram_id: number): Promise<Balance> {
+    await this.afkFarmService.updateAfkStartTime(telegram_id, new Date());
+
+    return this.findOne(telegram_id);
   }
 }
