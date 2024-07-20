@@ -1,8 +1,10 @@
-import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './user/user.module';
-import { LoggerMiddleware } from './logger.middleware';
+import { BalanceModule } from './balance/balance.module';
+import { ReferralModule } from './referral/referral.module';
+import { DailyBonusModule } from './daily-bonus/daily-bonus.module';
 
 @Module({
   imports: [
@@ -17,16 +19,12 @@ import { LoggerMiddleware } from './logger.middleware';
       password: process.env.DB_PASSWORD || 'Alcatraz',
       database: process.env.DB_NAME || 'beavie_nest',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
-      logging: true, // включаем логирование запросов
+      synchronize: true, // Включаем синхронизацию
     }),
     UserModule,
+    BalanceModule,
+    ReferralModule,
+    DailyBonusModule,
   ],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(LoggerMiddleware)
-      .forRoutes({ path: '*', method: RequestMethod.ALL });
-  }
-}
+export class AppModule {}
