@@ -5,6 +5,10 @@ import { UserModule } from './user/user.module';
 import { BalanceModule } from './balance/balance.module';
 import { ReferralModule } from './referral/referral.module';
 import { DailyBonusModule } from './daily-bonus/daily-bonus.module';
+import { QuestModule } from './quest/quest.module';
+import { UserQuestModule } from './user-quest/user-quest.module';
+import { UpgradeModule } from './upgrade/upgrade.module';
+import { UserUpgradeModule } from './user-upgrade/user-upgrade.module';
 
 @Module({
   imports: [
@@ -25,6 +29,10 @@ import { DailyBonusModule } from './daily-bonus/daily-bonus.module';
     BalanceModule,
     ReferralModule,
     DailyBonusModule,
+    QuestModule,
+    UserQuestModule,
+    UpgradeModule,
+    UserUpgradeModule,
   ],
 })
 export class AppModule {}
