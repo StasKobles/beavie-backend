@@ -19,4 +19,7 @@ export class Upgrade {
 
   @Column('double precision')
   upgrade_factor: number;
+
+  @Column('text', { nullable: true })
+  image_url: string;
 }
