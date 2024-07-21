@@ -7,6 +7,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
+  app.enableCors({
+    origin: '*', // Разрешить все домены, для конкретных доменов укажите массив строк, например, ['http://example.com']
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
+
   app.setGlobalPrefix('api');
 
   // Настройка Swagger
@@ -20,9 +27,9 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   app
-    .listen(3000)
+    .listen(3001)
     .then(() => {
-      logger.log('Server is running on http://localhost:3000');
+      logger.log('Server is running on http://localhost:3001');
     })
     .catch((err) => {
       logger.error('Error starting server', err);

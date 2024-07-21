@@ -1,12 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { AfkFarmService } from '../afk-farm/afk-farm.service';
 import { BalanceService } from '../balance/balance.service';
 
 @Injectable()
 export class BalanceUpdateService {
-  private readonly logger = new Logger(BalanceUpdateService.name);
-
   constructor(
     private readonly afkFarmService: AfkFarmService,
     private readonly balanceService: BalanceService,
@@ -14,7 +12,6 @@ export class BalanceUpdateService {
 
   @Cron('*/5 * * * * *') // Запуск задачи каждые 5 секунд
   async handleCron() {
-    this.logger.debug('Running balance update task');
     const afkFarms = await this.afkFarmService.findAll();
 
     const now = new Date();
@@ -24,17 +21,14 @@ export class BalanceUpdateService {
       const afkStartTime = new Date(afkFarm.afk_start_time);
       const elapsedTime = now.getTime() - afkStartTime.getTime();
 
-      if (elapsedTime > EIGHT_HOURS) {
-        this.logger.debug(
-          `AFK farm time expired for user ${afkFarm.telegram_id}`,
-        );
-        continue; // Пропустить начисление если прошло больше 8 часов
+      if (elapsedTime > EIGHT_HOURS || afkFarm.coins_per_hour === 0) {
+        continue; // Пропустить начисление если прошло больше 8 часов или coins_per_hour равно нулю
       }
 
       const incomePerSecond = afkFarm.coins_per_hour / 3600;
       const incomeEarned = incomePerSecond * (elapsedTime / 1000);
 
-      await this.balanceService.updateBalance(
+      await this.balanceService.increaseBalance(
         afkFarm.telegram_id,
         incomeEarned,
       );

@@ -75,7 +75,7 @@ export class ReferralService {
     }
 
     const award = referral.ref_ids[refIndex].award;
-    await this.balanceService.updateBalance(telegram_id, award);
+    await this.balanceService.increaseBalance(telegram_id, award);
     referral.ref_ids[refIndex].reward_received = true;
     await this.referralRepository.save(referral);
   }

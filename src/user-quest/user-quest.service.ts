@@ -14,8 +14,17 @@ export class UserQuestService {
     private balanceService: BalanceService,
   ) {}
 
-  async findOne(telegram_id: number): Promise<UserQuest> {
-    return this.userQuestRepository.findOne({ where: { telegram_id } });
+  async findOne(telegram_id: number): Promise<{
+    telegram_id: number;
+    quests: { quest_id: number; is_done: boolean }[];
+  }> {
+    const userQuest = await this.userQuestRepository.findOne({
+      where: { telegram_id },
+    });
+    if (!userQuest) {
+      return { telegram_id, quests: [] };
+    }
+    return userQuest;
   }
 
   async markQuestAsDone(
@@ -29,7 +38,7 @@ export class UserQuestService {
     }
 
     // Начисление награды на баланс пользователя
-    await this.balanceService.updateBalance(telegram_id, quest.reward);
+    await this.balanceService.increaseBalance(telegram_id, quest.reward);
 
     // Поиск или создание записи userQuest
     let userQuest = await this.userQuestRepository.findOne({
@@ -50,6 +59,10 @@ export class UserQuestService {
     }
 
     // Сохранение изменений в базе данных
-    return this.userQuestRepository.save(userQuest);
+    await this.userQuestRepository.save(userQuest);
+
+    return await this.userQuestRepository.findOne({
+      where: { telegram_id },
+    });
   }
 }

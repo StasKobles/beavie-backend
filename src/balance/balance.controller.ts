@@ -27,26 +27,54 @@ export class BalanceController {
     return this.balanceService.findOne(telegram_id);
   }
 
-  @Post('update')
-  @ApiOperation({ summary: 'Update balance' })
+  @ApiOperation({ summary: 'Increase user balance' })
+  @ApiResponse({
+    status: 200,
+    description: 'Balance increased successfully',
+    type: Balance,
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
   @ApiBody({
     schema: {
-      example: {
-        telegram_id: 123456789,
-        new_balance: 1000,
+      properties: {
+        telegram_id: { type: 'number' },
+        amount: { type: 'number' },
       },
     },
   })
+  @Post('increase')
+  increaseBalance(
+    @Body() data: { telegram_id: number; amount: number },
+  ): Promise<Balance> {
+    return this.balanceService.increaseBalance(data.telegram_id, data.amount);
+  }
+
+  @ApiOperation({ summary: 'Deduct user balance' })
   @ApiResponse({
     status: 200,
-    description: 'Balance updated successfully',
+    description: 'Balance deducted successfully',
     type: Balance,
   })
-  @ApiResponse({ status: 400, description: 'Invalid data' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 400, description: 'Insufficient balance' })
+  @ApiBody({
+    schema: {
+      properties: {
+        telegram_id: { type: 'number' },
+        amount: { type: 'number' },
+      },
+    },
+  })
+  @Post('deduct')
+  deductBalance(
+    @Body() data: { telegram_id: number; amount: number },
+  ): Promise<Balance> {
+    return this.balanceService.deductBalance(data.telegram_id, data.amount);
+  }
   updateBalance(
     @Body() data: { telegram_id: number; new_balance: number },
   ): Promise<Balance> {
-    return this.balanceService.updateBalance(
+    return this.balanceService.increaseBalance(
       data.telegram_id,
       data.new_balance,
     );

@@ -88,9 +88,9 @@ export class UserService {
 
         if (ref_id) {
           await this.referralService.addReferral(telegram_id, ref_id);
-          await this.balanceService.updateBalance(telegram_id, award);
+          await this.balanceService.increaseBalance(telegram_id, award);
         } else {
-          await this.balanceService.updateBalance(telegram_id, 0);
+          await this.balanceService.increaseBalance(telegram_id, 0);
         }
 
         await this.dailyBonusService.createDailyBonus(telegram_id);

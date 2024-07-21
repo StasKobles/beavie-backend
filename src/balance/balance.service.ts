@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Balance } from './balance.entity';
@@ -18,20 +18,34 @@ export class BalanceService {
     return this.balanceRepository.findOne({ where: { telegram_id } });
   }
 
-  async updateBalance(
-    telegram_id: number,
-    new_balance: number,
-  ): Promise<Balance> {
+  async increaseBalance(telegram_id: number, amount: number): Promise<Balance> {
     let balance = await this.balanceRepository.findOne({
       where: { telegram_id },
     });
     if (!balance) {
       balance = this.balanceRepository.create({
         telegram_id,
-        balance: new_balance,
+        balance: amount,
       });
     } else {
-      balance.balance = new_balance;
+      balance.balance = Number(balance.balance) + amount;
+    }
+    return this.balanceRepository.save(balance);
+  }
+
+  async deductBalance(telegram_id: number, amount: number): Promise<Balance> {
+    const balance = await this.balanceRepository.findOne({
+      where: { telegram_id },
+    });
+    if (!balance) {
+      throw new HttpException(
+        'User does not have a balance record',
+        HttpStatus.NOT_FOUND,
+      );
+    } else if (balance.balance < amount) {
+      throw new HttpException('Insufficient balance', HttpStatus.BAD_REQUEST);
+    } else {
+      balance.balance -= amount;
     }
     return this.balanceRepository.save(balance);
   }

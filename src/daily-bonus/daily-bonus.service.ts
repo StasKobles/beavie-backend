@@ -33,7 +33,7 @@ export class DailyBonusService {
     dailyBonus.reward_claimed_today = true;
     await this.dailyBonusRepository.save(dailyBonus);
 
-    await this.balanceService.updateBalance(telegram_id, reward);
+    await this.balanceService.increaseBalance(telegram_id, reward);
 
     return { success: true, reward };
   }
@@ -62,7 +62,7 @@ export class DailyBonusService {
   async createDailyBonus(telegram_id: number): Promise<DailyBonus> {
     const dailyBonus = this.dailyBonusRepository.create({
       telegram_id,
-      daily_streak: 1,
+      daily_streak: 0,
       reward_claimed_today: false,
     });
     return this.dailyBonusRepository.save(dailyBonus);
