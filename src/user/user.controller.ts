@@ -44,17 +44,19 @@ export class UserController {
     @Body()
     data: {
       telegram_id: number;
-      ref_id: number | null;
+      ref_id?: number | null;
       username: string;
-      is_premium: boolean;
+      is_premium?: boolean;
+      locale?: string;
     },
   ): Promise<User> {
     try {
       return await this.userService.initUser(
         data.telegram_id,
-        data.ref_id,
         data.username,
+        data.ref_id,
         data.is_premium,
+        data.locale,
       );
     } catch (error) {
       throw new HttpException(
@@ -75,5 +77,31 @@ export class UserController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async getUserStats(@Param('telegram_id') telegram_id: number): Promise<any> {
     return this.userService.getUserStats(telegram_id);
+  }
+
+  @Post('change-locale')
+  @ApiOperation({ summary: 'Change the locale of a user' })
+  @ApiBody({
+    schema: {
+      example: {
+        telegram_id: 123456789,
+        locale: 'ru',
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Locale changed successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async changeLocale(
+    @Body() data: { telegram_id: number; locale: string },
+  ): Promise<User> {
+    try {
+      return await this.userService.changeLocale(data.telegram_id, data.locale);
+    } catch (error) {
+      throw new HttpException(
+        { error: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

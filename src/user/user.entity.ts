@@ -10,4 +10,7 @@ export class User {
 
   @Column()
   status: string;
+
+  @Column({ type: 'varchar', length: 2, default: 'en' })
+  locale: string;
 }

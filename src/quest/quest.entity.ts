@@ -1,15 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { QuestTranslation } from './quest-translation.entity';
 
 @Entity('quests')
 export class Quest {
   @PrimaryGeneratedColumn()
   quest_id: number;
-
-  @Column()
-  name: string;
-
-  @Column('text')
-  description: string;
 
   @Column({ type: 'varchar', length: 10 })
   quest_method: 'REF' | 'EARN' | 'LINK';
@@ -31,4 +26,7 @@ export class Quest {
 
   @Column()
   logo_url: string;
+
+  @OneToMany(() => QuestTranslation, (translation) => translation.quest)
+  translations: QuestTranslation[];
 }

@@ -44,9 +44,10 @@ export class UserService {
 
   async initUser(
     telegram_id: number,
-    ref_id: number | null,
     username: string,
-    is_premium: boolean,
+    ref_id?: number | null,
+    is_premium?: boolean,
+    locale?: string, // добавляем параметр locale
   ): Promise<User> {
     const existingUser = await this.findOne(telegram_id);
     const award = is_premium ? 100000 : 20000;
@@ -68,6 +69,7 @@ export class UserService {
           telegram_id,
           registered_at: new Date(),
           status: 'active',
+          locale,
         });
         await transactionalEntityManager.save(newUser);
 
@@ -105,5 +107,16 @@ export class UserService {
       quests: userQuests ? userQuests.quests : [],
       daily_streak: dailyBonus ? dailyBonus.daily_streak : 0,
     };
+  }
+
+  async changeLocale(telegram_id: number, locale: string): Promise<User> {
+    const user = await this.findOne(telegram_id);
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    user.locale = locale;
+    await this.userRepository.save(user);
+    return user;
   }
 }

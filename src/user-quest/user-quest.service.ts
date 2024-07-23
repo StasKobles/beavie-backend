@@ -32,7 +32,7 @@ export class UserQuestService {
     quest_id: number,
   ): Promise<UserQuest> {
     // Поиск квеста в таблице quests
-    const quest = await this.questService.findOne(quest_id);
+    const quest = await this.questService.findOne(quest_id, 'en');
     if (!quest) {
       throw new NotFoundException('Quest not found');
     }

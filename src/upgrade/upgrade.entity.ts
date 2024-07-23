@@ -1,15 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+// upgrade.entity.ts
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { UpgradeTranslation } from './upgrade_translations.entity';
 
 @Entity('upgrades')
 export class Upgrade {
   @PrimaryGeneratedColumn()
   upgrade_id: number;
-
-  @Column()
-  name: string;
-
-  @Column('text')
-  description: string;
 
   @Column('int')
   base_cost: number;
@@ -22,4 +18,7 @@ export class Upgrade {
 
   @Column('text', { nullable: true })
   image_url: string;
+
+  @OneToMany(() => UpgradeTranslation, (translation) => translation.upgrade)
+  translations: UpgradeTranslation[];
 }
