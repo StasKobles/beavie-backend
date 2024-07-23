@@ -21,12 +21,14 @@ export class BalanceUpdateService {
       const afkStartTime = new Date(afkFarm.afk_start_time);
       const elapsedTime = now.getTime() - afkStartTime.getTime();
 
+      // Проверяем, прошло ли больше 8 часов с начала AFK
       if (elapsedTime > EIGHT_HOURS || afkFarm.coins_per_hour === 0) {
         continue; // Пропустить начисление если прошло больше 8 часов или coins_per_hour равно нулю
       }
 
+      // Начисляем доход за 5 секунд
       const incomePerSecond = afkFarm.coins_per_hour / 3600;
-      const incomeEarned = incomePerSecond * (elapsedTime / 1000);
+      const incomeEarned = incomePerSecond * 5; // Начисляем доход за 5 секунд
 
       await this.balanceService.increaseBalance(
         afkFarm.telegram_id,
