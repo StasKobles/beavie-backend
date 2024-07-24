@@ -5,6 +5,7 @@ import { UserUpgrade } from './user-upgrade.entity';
 import { Upgrade } from 'src/upgrade/upgrade.entity';
 import { AfkFarmService } from 'src/afk-farm/afk-farm.service';
 import { BalanceService } from 'src/balance/balance.service';
+import { User } from 'src/user/user.entity';
 
 @Injectable()
 export class UserUpgradeService {
@@ -17,9 +18,19 @@ export class UserUpgradeService {
     private afkFarmService: AfkFarmService,
   ) {}
 
-  async findOne(telegram_id: number): Promise<UserUpgrade> {
-    return this.userUpgradeRepository.findOne({ where: { telegram_id } });
+  async findOne(telegram_id: number): Promise<UserUpgrade[]> {
+    return this.userUpgradeRepository.find({
+      where: { user: { telegram_id } },
+    });
   }
+
+  async findAll(telegram_id: number): Promise<UserUpgrade[]> {
+    return this.userUpgradeRepository.find({
+      where: { user: { telegram_id } },
+      relations: ['upgrade'],
+    });
+  }
+
   async upgradeUser(
     telegram_id: number,
     upgrade_id: number,
@@ -35,24 +46,21 @@ export class UserUpgradeService {
 
     // Найти или создать запись улучшений пользователя
     let userUpgrade = await this.userUpgradeRepository.findOne({
-      where: { telegram_id },
+      where: { user: { telegram_id }, upgrade: { upgrade_id } },
     });
+
     let currentLevel = 0;
-    if (!userUpgrade) {
-      userUpgrade = this.userUpgradeRepository.create({
-        telegram_id,
-        upgrades: [{ upgrade_id, level }],
-      });
+    if (userUpgrade) {
+      currentLevel = userUpgrade.level;
+      userUpgrade.level = level;
+      userUpgrade.upgraded_at = new Date();
     } else {
-      const existingUpgrade = userUpgrade.upgrades.find(
-        (u) => u.upgrade_id === upgrade_id,
-      );
-      if (existingUpgrade) {
-        currentLevel = existingUpgrade.level;
-        existingUpgrade.level = level;
-      } else {
-        userUpgrade.upgrades.push({ upgrade_id, level });
-      }
+      userUpgrade = this.userUpgradeRepository.create({
+        user: { telegram_id } as User,
+        upgrade,
+        level,
+        upgraded_at: new Date(),
+      });
     }
 
     // Рассчитать общую стоимость улучшения от текущего уровня до желаемого уровня
@@ -85,21 +93,19 @@ export class UserUpgradeService {
 
   // Метод для обновления дохода AFK фарминга
   private async updateAfkFarmIncome(telegram_id: number): Promise<void> {
-    const userUpgrades = await this.userUpgradeRepository.findOne({
-      where: { telegram_id },
+    const userUpgrades = await this.userUpgradeRepository.find({
+      where: { user: { telegram_id } },
+      relations: ['upgrade'],
     });
 
     if (!userUpgrades) {
       return;
     }
 
-    const upgrades = userUpgrades.upgrades;
     let totalIncomePerHour = 0;
 
-    for (const upgrade of upgrades) {
-      const upgradeDetails = await this.upgradeRepository.findOne({
-        where: { upgrade_id: upgrade.upgrade_id },
-      });
+    for (const userUpgrade of userUpgrades) {
+      const upgradeDetails = userUpgrade.upgrade;
       if (upgradeDetails) {
         const { start_income, end_income, levels } = upgradeDetails;
         const incomeRatio = Math.pow(
@@ -108,7 +114,7 @@ export class UserUpgradeService {
         );
         let currentIncome = 0;
 
-        for (let i = 0; i < upgrade.level; i++) {
+        for (let i = 0; i < userUpgrade.level; i++) {
           currentIncome += start_income * Math.pow(incomeRatio, i);
         }
 

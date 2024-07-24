@@ -27,8 +27,25 @@ export class UserUpgradeController {
     type: UserUpgrade,
   })
   @ApiResponse({ status: 404, description: 'User upgrade not found' })
-  findOne(@Param('telegram_id') telegram_id: number): Promise<UserUpgrade> {
+  findOne(@Param('telegram_id') telegram_id: number): Promise<UserUpgrade[]> {
     return this.userUpgradeService.findOne(telegram_id);
+  }
+
+  @Get('all/:telegram_id')
+  @ApiOperation({ summary: 'Get all user upgrades by Telegram ID' })
+  @ApiParam({
+    name: 'telegram_id',
+    type: Number,
+    description: 'Telegram ID of the user',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'All user upgrades found',
+    type: [UserUpgrade],
+  })
+  @ApiResponse({ status: 404, description: 'User upgrades not found' })
+  findAll(@Param('telegram_id') telegram_id: number): Promise<UserUpgrade[]> {
+    return this.userUpgradeService.findAll(telegram_id);
   }
 
   @Post()

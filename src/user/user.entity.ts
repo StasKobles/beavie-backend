@@ -1,4 +1,5 @@
-import { Referral } from 'src/referral/referral.entity';
+import { Referral } from '../referral/referral.entity';
+import { UserUpgrade } from '../user-upgrade/user-upgrade.entity';
 import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
 
 @Entity('users')
@@ -17,4 +18,7 @@ export class User {
 
   @OneToMany(() => Referral, (referral) => referral.user)
   referrals: Referral[];
+
+  @OneToMany(() => UserUpgrade, (userUpgrade) => userUpgrade.user)
+  userUpgrades: UserUpgrade[];
 }

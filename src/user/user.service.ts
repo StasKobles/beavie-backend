@@ -100,14 +100,14 @@ export class UserService {
     }
 
     const balance = await this.balanceService.findOne(telegram_id);
-    const userUpgrades = await this.userUpgradeService.findOne(telegram_id);
+    const userUpgrades = await this.userUpgradeService.findAll(telegram_id); // Изменено на findAll
     const userQuests = await this.userQuestService.findOne(telegram_id);
     const dailyBonus = await this.dailyBonusService.findOne(telegram_id);
 
     return {
       user,
       balance: balance ? balance.balance : 0,
-      upgrades: userUpgrades ? userUpgrades.upgrades : [],
+      upgrades: userUpgrades,
       quests: userQuests ? userQuests.quests : [],
       daily_streak: dailyBonus ? dailyBonus.daily_streak : 0,
     };
