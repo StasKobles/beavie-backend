@@ -76,7 +76,11 @@ export class UserService {
         await this.usernamesService.create(telegram_id, username);
 
         if (ref_id) {
-          await this.referralService.addReferral(ref_id, telegram_id); // Изменен порядок
+          await this.referralService.addReferral(
+            ref_id,
+            telegram_id,
+            is_premium,
+          ); // Изменен порядок
           await this.balanceService.increaseBalance(telegram_id, award);
         } else {
           await this.balanceService.increaseBalance(telegram_id, 0);

@@ -75,11 +75,12 @@ export class ReferralService {
   }
 
   async addReferral(
-    referrer_id: number,
+    telegram_id: number,
     referral_id: number,
+    is_premium?: boolean,
   ): Promise<Referral> {
     const referrer = await this.userRepository.findOne({
-      where: { telegram_id: referrer_id },
+      where: { telegram_id },
       relations: ['referrals'],
     });
 
@@ -90,6 +91,7 @@ export class ReferralService {
     const referral = new Referral();
     referral.ref_id = referral_id;
     referral.user = referrer;
+    referral.award = is_premium ? 5000 : 750;
 
     referrer.referrals.push(referral);
 
