@@ -1,10 +1,20 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { User } from 'src/user/user.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 
-@Entity('user_refs')
+@Entity('referrals')
 export class Referral {
-  @PrimaryColumn({ type: 'bigint' })
-  telegram_id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @Column({ type: 'jsonb', default: () => "'[]'" })
-  ref_ids: { ref_id: number; reward_received: boolean; award: number }[];
+  @Column({ type: 'bigint' })
+  ref_id: number;
+
+  @Column({ type: 'boolean', default: false })
+  reward_received: boolean;
+
+  @Column({ type: 'int', default: 0 })
+  award: number;
+
+  @ManyToOne(() => User, (user) => user.referrals)
+  user: User;
 }

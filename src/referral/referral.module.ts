@@ -5,10 +5,11 @@ import { ReferralController } from './referral.controller';
 import { Referral } from './referral.entity';
 import { BalanceModule } from '../balance/balance.module';
 import { UsernamesModule } from '../usernames/usernames.module';
+import { User } from 'src/user/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Referral]),
+    TypeOrmModule.forFeature([Referral, User]),
     BalanceModule,
     UsernamesModule,
   ],

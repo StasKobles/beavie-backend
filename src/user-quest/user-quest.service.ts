@@ -1,17 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserQuest } from './user-quest.entity';
 import { QuestService } from 'src/quest/quest.service';
 import { BalanceService } from 'src/balance/balance.service';
+import { ReferralService } from 'src/referral/referral.service';
 
 @Injectable()
 export class UserQuestService {
   constructor(
     @InjectRepository(UserQuest)
-    private userQuestRepository: Repository<UserQuest>,
-    private questService: QuestService,
-    private balanceService: BalanceService,
+    @InjectRepository(UserQuest)
+    private readonly userQuestRepository: Repository<UserQuest>,
+    private readonly balanceService: BalanceService,
+    private readonly referralService: ReferralService,
+    private readonly questService: QuestService,
   ) {}
 
   async findOne(telegram_id: number): Promise<{
@@ -35,6 +42,23 @@ export class UserQuestService {
     const quest = await this.questService.findOne(quest_id, 'en');
     if (!quest) {
       throw new NotFoundException('Quest not found');
+    }
+
+    // Проверка условий выполнения квеста
+    if (quest.quest_method === 'EARN') {
+      const userBalance = await this.balanceService.findOne(telegram_id);
+      if (userBalance.balance < quest.earn_amount) {
+        throw new BadRequestException(
+          `User balance is less than the required amount: ${quest.earn_amount}`,
+        );
+      }
+    } else if (quest.quest_method === 'REF') {
+      const userReferrals = await this.referralService.findOne(telegram_id);
+      if (userReferrals.ref_ids.length < quest.ref_count) {
+        throw new BadRequestException(
+          `User referrals are less than the required count: ${quest.ref_count}`,
+        );
+      }
     }
 
     // Начисление награды на баланс пользователя

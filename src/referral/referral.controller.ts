@@ -1,13 +1,13 @@
 import {
-  BadRequestException,
-  Body,
   Controller,
   Get,
+  Param,
+  Post,
+  Body,
   HttpException,
   HttpStatus,
   NotFoundException,
-  Param,
-  Post,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -42,6 +42,26 @@ export class ReferralController {
   ): Promise<ReferralResponseDto> {
     try {
       return await this.referralService.findOne(telegram_id);
+    } catch (error) {
+      throw new HttpException(
+        { error: error.message },
+        error instanceof NotFoundException
+          ? HttpStatus.NOT_FOUND
+          : HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all referrals' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successful',
+    type: [ReferralResponseDto],
+  })
+  async findAll(): Promise<ReferralResponseDto[]> {
+    try {
+      return await this.referralService.findAll();
     } catch (error) {
       throw new HttpException(
         { error: error.message },

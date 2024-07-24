@@ -9,74 +9,120 @@ import { BalanceService } from '../balance/balance.service';
 import { UsernamesService } from '../usernames/usernames.service';
 import { ReferralResponseDto } from './dto/referral-response.dto';
 import { Referral } from './referral.entity';
+import { User } from 'src/user/user.entity';
 
 @Injectable()
 export class ReferralService {
   constructor(
     @InjectRepository(Referral)
+    @InjectRepository(Referral)
     private referralRepository: Repository<Referral>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private balanceService: BalanceService,
     private usernamesService: UsernamesService,
   ) {}
 
-  async findOne(telegram_id: number): Promise<ReferralResponseDto> {
-    const referral = await this.referralRepository.findOne({
-      where: { telegram_id },
+  async findAll(): Promise<ReferralResponseDto[]> {
+    const referrals = await this.referralRepository.find({
+      relations: ['user'],
     });
-    if (!referral) {
+    return await Promise.all(
+      referrals.map(async (referral) => {
+        const refs = await Promise.all(
+          referral.user.referrals.map(async (ref) => {
+            const username = await this.usernamesService.findOne(ref.ref_id);
+            const balance = await this.balanceService.findOne(ref.ref_id);
+            return {
+              ref_id: ref.ref_id,
+              reward_received: ref.reward_received,
+              award: ref.award,
+              username: username ? username.username : 'Unnamed User',
+              balance: balance ? balance.balance : 0,
+            };
+          }),
+        );
+        return { telegram_id: referral.user.telegram_id, ref_ids: refs };
+      }),
+    );
+  }
+
+  async findOne(telegram_id: number): Promise<ReferralResponseDto> {
+    const user = await this.userRepository.findOne({
+      where: { telegram_id },
+      relations: ['referrals'],
+    });
+
+    if (!user || !user.referrals.length) {
       throw new NotFoundException('No refs found for this user');
     }
 
     const refs = await Promise.all(
-      referral.ref_ids.map(async (ref) => {
+      user.referrals.map(async (ref) => {
         const username = await this.usernamesService.findOne(ref.ref_id);
         const balance = await this.balanceService.findOne(ref.ref_id);
         return {
-          ...ref,
+          ref_id: ref.ref_id,
+          reward_received: ref.reward_received,
+          award: ref.award,
           username: username ? username.username : 'Unnamed User',
           balance: balance ? balance.balance : 0,
         };
       }),
     );
 
-    return { telegram_id: referral.telegram_id, ref_ids: refs };
+    return { telegram_id: user.telegram_id, ref_ids: refs };
   }
 
-  async addReferral(telegram_id: number, ref_id: number): Promise<Referral> {
-    let referral = await this.referralRepository.findOne({
-      where: { telegram_id },
+  async addReferral(
+    referrer_id: number,
+    referral_id: number,
+  ): Promise<Referral> {
+    const referrer = await this.userRepository.findOne({
+      where: { telegram_id: referrer_id },
+      relations: ['referrals'],
     });
-    if (!referral) {
-      referral = this.referralRepository.create({
-        telegram_id,
-        ref_ids: [{ ref_id, reward_received: false, award: 0 }],
-      });
-    } else {
-      referral.ref_ids.push({ ref_id, reward_received: false, award: 0 });
+
+    if (!referrer) {
+      throw new NotFoundException('Referrer not found');
     }
-    return this.referralRepository.save(referral);
+
+    const referral = new Referral();
+    referral.ref_id = referral_id;
+    referral.user = referrer;
+
+    referrer.referrals.push(referral);
+
+    await this.referralRepository.save(referral);
+
+    return referral;
   }
 
   async claimReward(telegram_id: number, ref_id: number): Promise<void> {
     const referral = await this.referralRepository.findOne({
-      where: { telegram_id },
+      where: { user: { telegram_id } },
+      relations: ['user'],
     });
+
     if (!referral) {
       throw new NotFoundException('No refs found for this user');
     }
 
-    const refIndex = referral.ref_ids.findIndex((ref) => ref.ref_id === ref_id);
-    if (refIndex === -1) {
+    const referralToUpdate = await this.referralRepository.findOne({
+      where: { user: { telegram_id }, ref_id },
+    });
+
+    if (!referralToUpdate) {
       throw new NotFoundException('Ref not found');
     }
 
-    if (referral.ref_ids[refIndex].reward_received) {
+    if (referralToUpdate.reward_received) {
       throw new BadRequestException('Reward already claimed');
     }
 
-    const award = referral.ref_ids[refIndex].award;
+    const award = referralToUpdate.award;
     await this.balanceService.increaseBalance(telegram_id, award);
-    referral.ref_ids[refIndex].reward_received = true;
-    await this.referralRepository.save(referral);
+    referralToUpdate.reward_received = true;
+    await this.referralRepository.save(referralToUpdate);
   }
 }
