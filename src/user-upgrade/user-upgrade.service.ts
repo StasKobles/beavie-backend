@@ -57,9 +57,12 @@ export class UserUpgradeService {
 
     // Рассчитать общую стоимость улучшения от текущего уровня до желаемого уровня
     let totalCost = 0;
+    const { start_cost, end_cost, levels } = upgrade;
+    const costRatio = Math.pow(end_cost / start_cost, 1 / (levels - 1));
+
     for (let lvl = currentLevel + 1; lvl <= level; lvl++) {
-      totalCost +=
-        upgrade.base_cost * Math.pow(upgrade.upgrade_factor, lvl - 1);
+      const cost = start_cost * Math.pow(costRatio, lvl - 1);
+      totalCost += cost;
     }
 
     // Найти пользователя и проверить его баланс
@@ -98,9 +101,18 @@ export class UserUpgradeService {
         where: { upgrade_id: upgrade.upgrade_id },
       });
       if (upgradeDetails) {
-        totalIncomePerHour +=
-          upgradeDetails.base_income *
-          Math.pow(upgradeDetails.upgrade_factor, upgrade.level - 1);
+        const { start_income, end_income, levels } = upgradeDetails;
+        const incomeRatio = Math.pow(
+          end_income / start_income,
+          1 / (levels - 1),
+        );
+        let currentIncome = 0;
+
+        for (let i = 0; i < upgrade.level; i++) {
+          currentIncome += start_income * Math.pow(incomeRatio, i);
+        }
+
+        totalIncomePerHour += currentIncome;
       }
     }
 
