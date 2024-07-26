@@ -9,6 +9,7 @@ import { DailyBonusModule } from '../daily-bonus/daily-bonus.module'; // Имп�
 import { ReferralModule } from '../referral/referral.module';
 import { UserQuestModule } from 'src/user-quest/user-quest.module';
 import { UserUpgradeModule } from 'src/user-upgrade/user-upgrade.module';
+import { AfkFarmModule } from 'src/afk-farm/afk-farm.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { UserUpgradeModule } from 'src/user-upgrade/user-upgrade.module';
     ReferralModule, // Импортируем модуль Referral
     UserQuestModule, // Импортируйте UserQuestModule
     UserUpgradeModule, // Импортируйте UserUpgradeModule
+    AfkFarmModule,
   ],
   providers: [UserService],
   controllers: [UserController],

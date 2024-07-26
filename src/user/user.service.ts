@@ -8,6 +8,7 @@ import { DailyBonusService } from '../daily-bonus/daily-bonus.service';
 import { ReferralService } from '../referral/referral.service';
 import { UsernamesService } from '../usernames/usernames.service';
 import { User } from './user.entity';
+import { AfkFarmService } from 'src/afk-farm/afk-farm.service';
 
 @Injectable()
 export class UserService {
@@ -20,6 +21,7 @@ export class UserService {
     private referralService: ReferralService,
     private userQuestService: UserQuestService,
     private userUpgradeService: UserUpgradeService,
+    private afkFarmService: AfkFarmService,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -103,6 +105,7 @@ export class UserService {
     const userUpgrades = await this.userUpgradeService.findAll(telegram_id); // Изменено на findAll
     const userQuests = await this.userQuestService.findOne(telegram_id);
     const dailyBonus = await this.dailyBonusService.findOne(telegram_id);
+    const afkStartTime = await this.afkFarmService.findOne(telegram_id);
 
     return {
       user,
@@ -110,6 +113,7 @@ export class UserService {
       upgrades: userUpgrades,
       quests: userQuests ? userQuests.quests : [],
       daily_streak: dailyBonus ? dailyBonus.daily_streak : 0,
+      afkStartTime: afkStartTime ? afkStartTime.afk_start_time : new Date(),
     };
   }
 
