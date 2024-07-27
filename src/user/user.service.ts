@@ -89,6 +89,8 @@ export class UserService {
         }
 
         await this.dailyBonusService.createDailyBonus(telegram_id);
+        // Добавление записи в afk_farm
+        await this.afkFarmService.updateAfkStartTime(telegram_id, new Date());
       },
     );
 
