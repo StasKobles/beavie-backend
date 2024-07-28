@@ -7,8 +7,23 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
+  const allowedOrigin = process.env.CORS_URL;
+
   app.enableCors({
-    origin: process.env.CORS_URL,
+    origin: (origin, callback) => {
+      console.log(`Origin: ${origin}`);
+      console.log(`Allowed Origin: ${allowedOrigin}`);
+
+      // Разрешаем запросы без заголовка Origin (например, из Postman или cURL)
+      if (!origin) return callback(null, true);
+
+      // Проверка, что origin совпадает с разрешенным доменом
+      if (origin === allowedOrigin) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
     optionsSuccessStatus: 204,
