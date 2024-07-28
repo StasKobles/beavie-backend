@@ -52,7 +52,7 @@ export class UserService {
     locale?: string, // добавляем параметр locale
   ): Promise<User> {
     const existingUser = await this.findOne(telegram_id);
-    const award = is_premium ? 100000 : 20000;
+    const award = is_premium ? 5000 : 750;
 
     if (existingUser) {
       return existingUser;

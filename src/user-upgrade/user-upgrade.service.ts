@@ -112,11 +112,10 @@ export class UserUpgradeService {
           end_income / start_income,
           1 / (levels - 1),
         );
-        let currentIncome = 0;
 
-        for (let i = 0; i < userUpgrade.level; i++) {
-          currentIncome += start_income * Math.pow(incomeRatio, i);
-        }
+        // Рассчитываем доход только для текущего уровня
+        const currentIncome =
+          start_income * Math.pow(incomeRatio, userUpgrade.level - 1);
 
         totalIncomePerHour += currentIncome;
       }
