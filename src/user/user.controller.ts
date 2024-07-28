@@ -49,7 +49,7 @@ export class UserController {
       is_premium?: boolean;
       locale?: string;
     },
-  ): Promise<User> {
+  ): Promise<{ user: User; isNew: boolean }> {
     try {
       return await this.userService.initUser(
         data.telegram_id,

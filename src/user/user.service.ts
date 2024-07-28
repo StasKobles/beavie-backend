@@ -49,13 +49,13 @@ export class UserService {
     username: string,
     ref_id?: number | null,
     is_premium?: boolean,
-    locale?: string, // добавляем параметр locale
-  ): Promise<User> {
+    locale?: string,
+  ): Promise<{ user: User; isNew: boolean }> {
     const existingUser = await this.findOne(telegram_id);
     const award = is_premium ? 5000 : 750;
 
     if (existingUser) {
-      return existingUser;
+      return { user: existingUser, isNew: false };
     }
 
     if (!username || username.trim() === '') {
@@ -82,7 +82,7 @@ export class UserService {
             ref_id,
             telegram_id,
             is_premium,
-          ); // Изменен порядок
+          );
           await this.balanceService.increaseBalance(telegram_id, award);
         } else {
           await this.balanceService.increaseBalance(telegram_id, 0);
@@ -94,7 +94,8 @@ export class UserService {
       },
     );
 
-    return this.findOne(telegram_id);
+    const newUser = await this.findOne(telegram_id);
+    return { user: newUser, isNew: true };
   }
 
   async getUserStats(telegram_id: number): Promise<any> {
