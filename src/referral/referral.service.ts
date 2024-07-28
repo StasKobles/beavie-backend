@@ -29,6 +29,7 @@ export class ReferralService {
     const referrals = await this.referralRepository.find({
       relations: ['user'],
     });
+
     return await Promise.all(
       referrals.map(async (referral) => {
         const refs = await Promise.all(
@@ -44,6 +45,10 @@ export class ReferralService {
             };
           }),
         );
+
+        // Сортировка по passiveIncome от большего к меньшему
+        refs.sort((a, b) => b.passiveIncome - a.passiveIncome);
+
         return { telegram_id: referral.user.telegram_id, ref_ids: refs };
       }),
     );
@@ -72,6 +77,9 @@ export class ReferralService {
         };
       }),
     );
+
+    // Сортировка по passiveIncome от большего к меньшему
+    refs.sort((a, b) => b.passiveIncome - a.passiveIncome);
 
     return { telegram_id: user.telegram_id, ref_ids: refs };
   }

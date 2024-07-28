@@ -27,6 +27,16 @@ async function bootstrap() {
       allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
       exposedHeaders: ['Content-Length', 'X-Kuma-Revision'],
     });
+  } else {
+    // Разрешить любые источники для режима разработки
+    app.enableCors({
+      origin: '*',
+      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+      exposedHeaders: ['Content-Length', 'X-Kuma-Revision'],
+    });
   }
 
   app.setGlobalPrefix('api');
