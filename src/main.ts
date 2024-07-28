@@ -6,25 +6,28 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
-  const allowedOrigin = process.env.CORS_URL;
 
-  app.enableCors({
-    origin: (origin, callback) => {
-      logger.log(`Origin: ${origin}`);
-      logger.log(`Allowed Origin: ${allowedOrigin}`);
+  if (process.env.NODE_ENV === 'production') {
+    const allowedOrigins = [process.env.CORS_URL, 'http://192.168.1.100'];
 
-      if (!origin || origin === allowedOrigin) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    exposedHeaders: ['Content-Length', 'X-Kuma-Revision'],
-  });
+    app.enableCors({
+      origin: (origin, callback) => {
+        logger.log(`Origin: ${origin}`);
+        logger.log(`Allowed Origins: ${allowedOrigins.join(', ')}`);
+
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+      exposedHeaders: ['Content-Length', 'X-Kuma-Revision'],
+    });
+  }
 
   app.setGlobalPrefix('api');
 
