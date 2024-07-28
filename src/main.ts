@@ -10,7 +10,10 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigin === '*' || origin === allowedOrigin) {
+      logger.log(`Origin: ${origin}`);
+      logger.log(`Allowed Origin: ${allowedOrigin}`);
+
+      if (!origin || origin === allowedOrigin) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
