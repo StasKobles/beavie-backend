@@ -8,7 +8,7 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   app.enableCors({
-    origin: '*', // Разрешить все домены, для конкретных доменов укажите массив строк, например, ['http://example.com']
+    origin: process.env.CORS_URL,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
     optionsSuccessStatus: 204,
