@@ -14,10 +14,6 @@ async function bootstrap() {
       console.log(`Origin: ${origin}`);
       console.log(`Allowed Origin: ${allowedOrigin}`);
 
-      // Разрешаем запросы без заголовка Origin (например, из Postman или cURL)
-      if (!origin) return callback(null, true);
-
-      // Проверка, что origin совпадает с разрешенным доменом
       if (origin === allowedOrigin) {
         callback(null, true);
       } else {
