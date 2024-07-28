@@ -13,6 +13,7 @@ import { UsernamesModule } from './usernames/usernames.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AfkFarmModule } from './afk-farm/afk-farm.module';
 import { BalanceUpdateModule } from './balance-update/balance-update.module';
+import { BackupService } from './backup/backup.service';
 
 @Module({
   imports: [
@@ -42,5 +43,6 @@ import { BalanceUpdateModule } from './balance-update/balance-update.module';
     BalanceUpdateModule,
     ScheduleModule.forRoot(),
   ],
+  providers: [BackupService],
 })
 export class AppModule {}
