@@ -10,10 +10,10 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || origin === allowedOrigin) {
+      if (!origin || allowedOrigin === '*' || origin === allowedOrigin) {
         callback(null, true);
       } else {
-        callback(null, false);
+        callback(new Error('Not allowed by CORS'));
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',

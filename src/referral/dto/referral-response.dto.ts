@@ -3,7 +3,7 @@ export class ReferralDto {
   reward_received: boolean;
   award: number;
   username: string;
-  balance: number;
+  passiveIncome: number;
 }
 
 export class ReferralResponseDto {

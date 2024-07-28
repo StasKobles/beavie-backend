@@ -10,6 +10,7 @@ import { UsernamesService } from '../usernames/usernames.service';
 import { ReferralResponseDto } from './dto/referral-response.dto';
 import { Referral } from './referral.entity';
 import { User } from 'src/user/user.entity';
+import { AfkFarmService } from 'src/afk-farm/afk-farm.service';
 
 @Injectable()
 export class ReferralService {
@@ -21,6 +22,7 @@ export class ReferralService {
     private userRepository: Repository<User>,
     private balanceService: BalanceService,
     private usernamesService: UsernamesService,
+    private afkFarmService: AfkFarmService,
   ) {}
 
   async findAll(): Promise<ReferralResponseDto[]> {
@@ -32,13 +34,13 @@ export class ReferralService {
         const refs = await Promise.all(
           referral.user.referrals.map(async (ref) => {
             const username = await this.usernamesService.findOne(ref.ref_id);
-            const balance = await this.balanceService.findOne(ref.ref_id);
+            const passiveIncome = await this.afkFarmService.findOne(ref.ref_id);
             return {
               ref_id: ref.ref_id,
               reward_received: ref.reward_received,
               award: ref.award,
               username: username ? username.username : 'Unnamed User',
-              balance: balance ? balance.balance : 0,
+              passiveIncome: passiveIncome ? passiveIncome.coins_per_hour : 0,
             };
           }),
         );
@@ -60,13 +62,13 @@ export class ReferralService {
     const refs = await Promise.all(
       user.referrals.map(async (ref) => {
         const username = await this.usernamesService.findOne(ref.ref_id);
-        const balance = await this.balanceService.findOne(ref.ref_id);
+        const passiveIncome = await this.afkFarmService.findOne(ref.ref_id);
         return {
           ref_id: ref.ref_id,
           reward_received: ref.reward_received,
           award: ref.award,
           username: username ? username.username : 'Unnamed User',
-          balance: balance ? balance.balance : 0,
+          passiveIncome: passiveIncome ? passiveIncome.coins_per_hour : 0,
         };
       }),
     );
