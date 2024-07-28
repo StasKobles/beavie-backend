@@ -6,23 +6,21 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
-
   const allowedOrigin = process.env.CORS_URL;
 
   app.enableCors({
     origin: (origin, callback) => {
-      console.log(`Origin: ${origin}`);
-      console.log(`Allowed Origin: ${allowedOrigin}`);
-
-      if (origin === allowedOrigin) {
+      if (!origin || origin === allowedOrigin) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        callback(null, false);
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
     optionsSuccessStatus: 204,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    exposedHeaders: ['Content-Length', 'X-Kuma-Revision'],
   });
 
   app.setGlobalPrefix('api');
