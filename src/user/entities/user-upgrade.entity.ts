@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
-import { User } from '../user/user.entity';
-import { Upgrade } from '../upgrade/upgrade.entity';
+import { User } from '../user.entity';
+import { Upgrade } from '../../upgrade/upgrade.entity';
 
 @Entity('user_upgrades')
 export class UserUpgrade {

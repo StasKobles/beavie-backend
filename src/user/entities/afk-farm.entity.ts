@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { User } from '../user.entity';
+import { Entity, Column, PrimaryColumn, ManyToOne } from 'typeorm';
 
 @Entity('afk_farm')
 export class AfkFarm {
@@ -10,4 +11,7 @@ export class AfkFarm {
 
   @Column({ type: 'timestamp' })
   afk_start_time: Date;
+
+  @ManyToOne(() => User, (user) => user.afkFarms)
+  user: User;
 }

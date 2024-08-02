@@ -1,18 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { AfkFarmService } from '../afk-farm/afk-farm.service';
-import { BalanceService } from '../balance/balance.service';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class BalanceUpdateService {
-  constructor(
-    private readonly afkFarmService: AfkFarmService,
-    private readonly balanceService: BalanceService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   @Cron('*/5 * * * * *') // Запуск задачи каждые 5 секунд
   async handleCron() {
-    const afkFarms = await this.afkFarmService.findAll();
+    const afkFarms = await this.userService.findAllAfkFarms();
 
     const now = new Date();
     const EIGHT_HOURS = 8 * 60 * 60 * 1000; // 8 часов в миллисекундах
@@ -30,10 +26,7 @@ export class BalanceUpdateService {
       const incomePerSecond = afkFarm.coins_per_hour / 3600;
       const incomeEarned = incomePerSecond * 5; // Начисляем доход за 5 секунд
 
-      await this.balanceService.increaseBalance(
-        afkFarm.telegram_id,
-        incomeEarned,
-      );
+      await this.userService.increaseBalance(afkFarm.telegram_id, incomeEarned);
     }
   }
 }

@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { User } from '../user.entity';
+import { Entity, Column, PrimaryColumn, ManyToOne } from 'typeorm';
 
 @Entity('daily_bonuses')
 export class DailyBonus {
@@ -10,4 +11,7 @@ export class DailyBonus {
 
   @Column({ type: 'boolean', default: false })
   reward_claimed_today: boolean;
+
+  @ManyToOne(() => User, (user) => user.dailyBonuses)
+  user: User;
 }
