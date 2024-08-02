@@ -94,7 +94,7 @@ class ReferralResponse {
 @ApiTags('users')
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @Post('init')
   @ApiOperation({ summary: 'Initialize a new user' })
@@ -107,7 +107,7 @@ export class UserController {
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async initUser(
     @Body() data: InitUserDto,
-  ): Promise<{ user: User; isNew: boolean }> {
+  ): Promise<{ user: User; isNew: boolean; access_token: string }> {
     try {
       return await this.userService.initUser(
         data.telegram_id,
@@ -406,7 +406,7 @@ export class UserController {
       throw new HttpException(
         { error: error.message },
         error instanceof NotFoundException ||
-        error instanceof BadRequestException
+          error instanceof BadRequestException
           ? HttpStatus.BAD_REQUEST
           : HttpStatus.INTERNAL_SERVER_ERROR,
       );

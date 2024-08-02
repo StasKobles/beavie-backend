@@ -1,13 +1,16 @@
 import {
-  Injectable,
+  BadRequestException,
   HttpException,
   HttpStatus,
+  Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { AuthService } from 'src/auth/auth.service';
+import { Quest } from 'src/quest/quest.entity';
+import { Upgrade } from 'src/upgrade/upgrade.entity';
 import { Repository } from 'typeorm';
-import { User } from './user.entity';
+import { ReferralResponseDto, UpdateAfkFarmDto } from './dto/user.dto';
 import { AfkFarm } from './entities/afk-farm.entity';
 import { Balance } from './entities/balance.entity';
 import { DailyBonus } from './entities/daily-bonus.entity';
@@ -15,9 +18,7 @@ import { Referral } from './entities/referral.entity';
 import { UserQuest } from './entities/user-quest.entity';
 import { UserUpgrade } from './entities/user-upgrade.entity';
 import { Usernames } from './entities/usernames.entity';
-import { Upgrade } from 'src/upgrade/upgrade.entity';
-import { Quest } from 'src/quest/quest.entity';
-import { UpdateAfkFarmDto, ReferralResponseDto } from './dto/user.dto';
+import { User } from './user.entity';
 
 @Injectable()
 export class UserService {
@@ -42,7 +43,8 @@ export class UserService {
     private upgradeRepository: Repository<Upgrade>,
     @InjectRepository(Quest)
     private questRepository: Repository<Quest>,
-  ) {}
+    private authService: AuthService, // Добавляем AuthService
+  ) { }
 
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
@@ -71,19 +73,19 @@ export class UserService {
   async delete(telegram_id: number): Promise<void> {
     await this.userRepository.delete({ telegram_id });
   }
-
   async initUser(
     telegram_id: number,
     username: string,
     ref_id?: number | null,
     is_premium?: boolean,
     locale?: string,
-  ): Promise<{ user: User; isNew: boolean }> {
+  ): Promise<{ user: User; isNew: boolean; access_token: string }> {
     const existingUser = await this.findOne(telegram_id);
     const award = is_premium ? 5000 : 750;
 
     if (existingUser) {
-      return { user: existingUser, isNew: false };
+      const access_token = (await this.authService.login(existingUser)).access_token;
+      return { user: existingUser, isNew: false, access_token };
     }
 
     if (!username || username.trim() === '') {
@@ -118,7 +120,9 @@ export class UserService {
     );
 
     const newUser = await this.findOne(telegram_id);
-    return { user: newUser, isNew: true };
+    const access_token = (await this.authService.login(newUser)).access_token;
+
+    return { user: newUser, isNew: true, access_token };
   }
 
   async getUserStats(telegram_id: number): Promise<any> {
