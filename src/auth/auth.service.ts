@@ -8,7 +8,7 @@ export class AuthService {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
-  ) { }
+  ) {}
 
   async validateUser(initDataRaw: string): Promise<any> {
     try {

@@ -5,56 +5,56 @@ import { UserService } from '../user/user.service';
 import { UnauthorizedException } from '@nestjs/common';
 
 const mockUserService = {
-    findOne: jest.fn(),
+  findOne: jest.fn(),
 };
 
 const mockJwtService = {
-    sign: jest.fn(() => 'signed-token'),
+  sign: jest.fn(() => 'signed-token'),
 };
 
 describe('AuthService', () => {
-    let authService: AuthService;
+  let authService: AuthService;
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                AuthService,
-                { provide: UserService, useValue: mockUserService },
-                { provide: JwtService, useValue: mockJwtService },
-            ],
-        }).compile();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        { provide: UserService, useValue: mockUserService },
+        { provide: JwtService, useValue: mockJwtService },
+      ],
+    }).compile();
 
-        authService = module.get<AuthService>(AuthService);
+    authService = module.get<AuthService>(AuthService);
+  });
+
+  it('should be defined', () => {
+    expect(authService).toBeDefined();
+  });
+
+  describe('validateUser', () => {
+    it('should return a user if validation is successful', async () => {
+      const user = { id: 1, telegram_id: 123456, username: 'testuser' };
+      mockUserService.findOne.mockResolvedValue(user);
+
+      const result = await authService.validateUser('valid-init-data');
+      expect(result).toEqual(user);
     });
 
-    it('should be defined', () => {
-        expect(authService).toBeDefined();
+    it('should throw an UnauthorizedException if validation fails', async () => {
+      mockUserService.findOne.mockResolvedValue(null);
+
+      await expect(
+        authService.validateUser('invalid-init-data'),
+      ).rejects.toThrow(UnauthorizedException);
     });
+  });
 
-    describe('validateUser', () => {
-        it('should return a user if validation is successful', async () => {
-            const user = { id: 1, telegram_id: 123456, username: 'testuser' };
-            mockUserService.findOne.mockResolvedValue(user);
+  describe('login', () => {
+    it('should return an access token', async () => {
+      const user = { id: 1, telegram_id: 123456, username: 'testuser' };
+      const result = await authService.login(user);
 
-            const result = await authService.validateUser('valid-init-data');
-            expect(result).toEqual(user);
-        });
-
-        it('should throw an UnauthorizedException if validation fails', async () => {
-            mockUserService.findOne.mockResolvedValue(null);
-
-            await expect(authService.validateUser('invalid-init-data')).rejects.toThrow(
-                UnauthorizedException,
-            );
-        });
+      expect(result).toEqual({ access_token: 'signed-token' });
     });
-
-    describe('login', () => {
-        it('should return an access token', async () => {
-            const user = { id: 1, telegram_id: 123456, username: 'testuser' };
-            const result = await authService.login(user);
-
-            expect(result).toEqual({ access_token: 'signed-token' });
-        });
-    });
+  });
 });

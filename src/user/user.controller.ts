@@ -94,7 +94,7 @@ class ReferralResponse {
 @ApiTags('users')
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   @Post('init')
   @ApiOperation({ summary: 'Initialize a new user' })
@@ -406,7 +406,7 @@ export class UserController {
       throw new HttpException(
         { error: error.message },
         error instanceof NotFoundException ||
-          error instanceof BadRequestException
+        error instanceof BadRequestException
           ? HttpStatus.BAD_REQUEST
           : HttpStatus.INTERNAL_SERVER_ERROR,
       );

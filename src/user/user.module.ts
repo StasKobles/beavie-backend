@@ -14,6 +14,7 @@ import { UpgradeModule } from 'src/upgrade/upgrade.module';
 import { QuestModule } from 'src/quest/quest.module';
 import { Upgrade } from 'src/upgrade/upgrade.entity';
 import { Quest } from 'src/quest/quest.entity';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { Quest } from 'src/quest/quest.entity';
     ]),
     UpgradeModule,
     QuestModule,
+    AuthModule,
   ],
   controllers: [UserController],
   providers: [UserService],

@@ -44,7 +44,7 @@ export class UserService {
     @InjectRepository(Quest)
     private questRepository: Repository<Quest>,
     private authService: AuthService, // Добавляем AuthService
-  ) { }
+  ) {}
 
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
@@ -84,7 +84,8 @@ export class UserService {
     const award = is_premium ? 5000 : 750;
 
     if (existingUser) {
-      const access_token = (await this.authService.login(existingUser)).access_token;
+      const access_token = (await this.authService.login(existingUser))
+        .access_token;
       return { user: existingUser, isNew: false, access_token };
     }
 
