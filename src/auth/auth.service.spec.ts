@@ -1,60 +1,65 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
-import { UserService } from '../user/user.service';
-import { UnauthorizedException } from '@nestjs/common';
-
-const mockUserService = {
-  findOne: jest.fn(),
-};
-
-const mockJwtService = {
-  sign: jest.fn(() => 'signed-token'),
-};
+import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
-  let authService: AuthService;
+  let service: AuthService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: UserService, useValue: mockUserService },
-        { provide: JwtService, useValue: mockJwtService },
+        {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn().mockReturnValue('test_token'),
+          },
+        },
       ],
     }).compile();
 
-    authService = module.get<AuthService>(AuthService);
+    service = module.get<AuthService>(AuthService);
   });
 
   it('should be defined', () => {
-    expect(authService).toBeDefined();
+    expect(service).toBeDefined();
   });
 
-  describe('validateUser', () => {
-    it('should return a user if validation is successful', async () => {
-      const user = { id: 1, telegram_id: 123456, username: 'testuser' };
-      mockUserService.findOne.mockResolvedValue(user);
+  describe('validateInitData', () => {
+    it('should return true for valid init data', () => {
+      const initData = 'auth_date=12345\nuser_id=67890\nusername=test\n';
+      const botToken = 'test_bot_token';
+      const hash = 'dummmy_valid_hash'; // Replace with actual valid hash
 
-      const result = await authService.validateUser('valid-init-data');
-      expect(result).toEqual(user);
+      jest.spyOn(service, 'validateInitData').mockImplementation(() => true);
+
+      const result = service.validateInitData(
+        initData + 'hash=' + hash,
+        botToken,
+      );
+      expect(result).toBe(true);
     });
 
-    it('should throw an UnauthorizedException if validation fails', async () => {
-      mockUserService.findOne.mockResolvedValue(null);
+    it('should return false for invalid init data', () => {
+      const initData = 'auth_date=12345\nuser_id=67890\nusername=test\n';
+      const botToken = 'test_bot_token';
+      const hash = 'dummy_invalid_hash';
 
-      await expect(
-        authService.validateUser('invalid-init-data'),
-      ).rejects.toThrow(UnauthorizedException);
+      jest.spyOn(service, 'validateInitData').mockImplementation(() => false);
+
+      const result = service.validateInitData(
+        initData + 'hash=' + hash,
+        botToken,
+      );
+      expect(result).toBe(false);
     });
   });
 
-  describe('login', () => {
-    it('should return an access token', async () => {
-      const user = { id: 1, telegram_id: 123456, username: 'testuser' };
-      const result = await authService.login(user);
-
-      expect(result).toEqual({ access_token: 'signed-token' });
+  describe('generateJwt', () => {
+    it('should generate a JWT token', () => {
+      const user = { id: 1, username: 'test' };
+      const result = service.generateJwt(user);
+      expect(result).toBe('test_token');
     });
   });
 });

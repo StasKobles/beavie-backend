@@ -28,21 +28,15 @@ import {
   ReferralResponseDto,
 } from './dto/user.dto';
 
-class UserResponse {
-  @ApiProperty({ example: 1 })
-  id: number;
+export class UserResponse {
+  @ApiProperty({ type: User })
+  user: User;
 
-  @ApiProperty({ example: 'username' })
-  username: string;
+  @ApiProperty()
+  isNew: boolean;
 
-  @ApiProperty({ example: 123456789 })
-  telegram_id: number;
-
-  @ApiProperty({ example: true })
-  is_premium: boolean;
-
-  @ApiProperty({ example: 'en' })
-  locale: string;
+  @ApiProperty()
+  token: string;
 }
 
 class BalanceResponse {
@@ -107,15 +101,22 @@ export class UserController {
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async initUser(
     @Body() data: InitUserDto,
-  ): Promise<{ user: User; isNew: boolean; access_token: string }> {
+  ): Promise<{ user: User; isNew: boolean; token: string }> {
     try {
-      return await this.userService.initUser(
+      const result = await this.userService.initUser(
         data.telegram_id,
         data.username,
         data.ref_id,
         data.is_premium,
         data.locale,
       );
+      if (!result.token) {
+        throw new HttpException(
+          { error: 'Token generation failed' },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return result;
     } catch (error) {
       throw new HttpException(
         { error: error.message },

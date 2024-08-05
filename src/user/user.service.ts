@@ -6,7 +6,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AuthService } from 'src/auth/auth.service';
 import { Quest } from 'src/quest/quest.entity';
 import { Upgrade } from 'src/upgrade/upgrade.entity';
 import { Repository } from 'typeorm';
@@ -19,6 +18,7 @@ import { UserQuest } from './entities/user-quest.entity';
 import { UserUpgrade } from './entities/user-upgrade.entity';
 import { Usernames } from './entities/usernames.entity';
 import { User } from './user.entity';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UserService {
@@ -43,7 +43,7 @@ export class UserService {
     private upgradeRepository: Repository<Upgrade>,
     @InjectRepository(Quest)
     private questRepository: Repository<Quest>,
-    private authService: AuthService, // Добавляем AuthService
+    private authService: AuthService,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -73,20 +73,20 @@ export class UserService {
   async delete(telegram_id: number): Promise<void> {
     await this.userRepository.delete({ telegram_id });
   }
+
   async initUser(
     telegram_id: number,
     username: string,
     ref_id?: number | null,
     is_premium?: boolean,
     locale?: string,
-  ): Promise<{ user: User; isNew: boolean; access_token: string }> {
+  ): Promise<{ user: User; isNew: boolean; token: string }> {
     const existingUser = await this.findOne(telegram_id);
     const award = is_premium ? 5000 : 750;
 
     if (existingUser) {
-      const access_token = (await this.authService.login(existingUser))
-        .access_token;
-      return { user: existingUser, isNew: false, access_token };
+      const token = this.authService.generateJwt(existingUser);
+      return { user: existingUser, isNew: false, token };
     }
 
     if (!username || username.trim() === '') {
@@ -121,9 +121,9 @@ export class UserService {
     );
 
     const newUser = await this.findOne(telegram_id);
-    const access_token = (await this.authService.login(newUser)).access_token;
+    const token = this.authService.generateJwt(newUser);
 
-    return { user: newUser, isNew: true, access_token };
+    return { user: newUser, isNew: true, token };
   }
 
   async getUserStats(telegram_id: number): Promise<any> {
