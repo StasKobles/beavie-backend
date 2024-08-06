@@ -14,21 +14,44 @@ export class AuthService {
   }
 
   validateInitData(initData: string, botToken: string): boolean {
+    try {
+      const params = new URLSearchParams(initData);
+      const vals = Object.fromEntries(params.entries());
+
+      const hash = vals.hash;
+      delete vals.hash;
+
+      const dataCheckString = Object.keys(vals)
+        .sort()
+        .map((key) => `${key}=${decodeURIComponent(vals[key])}`)
+        .join('\n');
+
+      const secretKey = crypto
+        .createHmac('sha256', 'WebAppData')
+        .update(botToken)
+        .digest();
+
+      const hmac = crypto
+        .createHmac('sha256', secretKey)
+        .update(dataCheckString)
+        .digest('hex');
+
+      return hmac === hash;
+    } catch (error) {
+      console.error('Error validating initData:', error);
+      return false;
+    }
+  }
+
+  extractUserData(initData: string) {
     const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    params.delete('hash');
+    const user = JSON.parse(params.get('user'));
+    const is_premium = user.is_premium || false;
+    const locale = user.language_code || 'en';
+    const username =
+      `${user.first_name} ${user.last_name}`.trim() || 'unnamed user';
+    const telegram_id = user.id;
 
-    const dataCheckString = Array.from(params.entries())
-      .map(([key, value]) => `${key}=${value}`)
-      .sort()
-      .join('\n');
-
-    const secretKey = crypto.createHash('sha256').update(botToken).digest();
-    const hmac = crypto
-      .createHmac('sha256', secretKey)
-      .update(dataCheckString)
-      .digest('hex');
-
-    return hmac === hash;
+    return { is_premium, locale, username, telegram_id };
   }
 }

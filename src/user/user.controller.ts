@@ -9,6 +9,7 @@ import {
   NotFoundException,
   BadRequestException,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -29,6 +30,7 @@ import {
   ReferralResponseDto,
 } from './dto/user.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { AuthService } from 'src/auth/auth.service';
 
 export class UserResponse {
   @ApiProperty({ type: User })
@@ -90,7 +92,10 @@ class ReferralResponse {
 @ApiTags('users')
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Post('init')
   @ApiOperation({ summary: 'Initialize a new user' })
@@ -98,7 +103,7 @@ export class UserController {
   @ApiResponse({
     status: 201,
     description: 'User initialized successfully',
-    type: UserResponse,
+    type: User,
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async initUser(@Body() data: InitUserDto): Promise<{
@@ -107,21 +112,13 @@ export class UserController {
     accessToken: string;
     refreshToken: string;
   }> {
+    const botToken = process.env.BOT_TOKEN;
+    if (!this.authService.validateInitData(data.initData, botToken)) {
+      throw new UnauthorizedException('Invalid init data');
+    }
+
     try {
-      const result = await this.userService.initUser(
-        data.telegram_id,
-        data.username,
-        data.ref_id,
-        data.is_premium,
-        data.locale,
-      );
-      if (!result.accessToken || !result.refreshToken) {
-        throw new HttpException(
-          { error: 'Token generation failed' },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      return result;
+      return await this.userService.initUser(data.initData, data.ref_id);
     } catch (error) {
       throw new HttpException(
         { error: error.message },

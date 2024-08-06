@@ -75,17 +75,17 @@ export class UserService {
   }
 
   async initUser(
-    telegram_id: number,
-    username: string,
+    initData: string,
     ref_id?: number | null,
-    is_premium?: boolean,
-    locale?: string,
   ): Promise<{
     user: User;
     isNew: boolean;
     accessToken: string;
     refreshToken: string;
   }> {
+    const { username, is_premium, locale, telegram_id } =
+      this.authService.extractUserData(initData);
+
     const existingUser = await this.findOne(telegram_id);
     const award = is_premium ? 5000 : 750;
 

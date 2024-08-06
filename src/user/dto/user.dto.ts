@@ -1,20 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class InitUserDto {
-  @ApiProperty({ example: 123456789 })
-  telegram_id: number;
-
-  @ApiProperty({ example: 'example_user' })
-  username: string;
+  @ApiProperty({ example: 'initData string from Telegram WebApp' })
+  initData: string;
 
   @ApiProperty({ example: 987654321, required: false })
   ref_id?: number | null;
-
-  @ApiProperty({ example: true, required: false })
-  is_premium?: boolean;
-
-  @ApiProperty({ example: 'en', required: false })
-  locale?: string;
 }
 
 export class UpdateBalanceDto {
