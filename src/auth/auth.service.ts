@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import * as crypto from 'crypto';
 import { JwtService } from '@nestjs/jwt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
   constructor(private jwtService: JwtService) {}
+
+  generateTokens(user: any): { accessToken: string; refreshToken: string } {
+    const payload = { sub: user.id, username: user.username };
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '60m' });
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+    return { accessToken, refreshToken };
+  }
 
   validateInitData(initData: string, botToken: string): boolean {
     const params = new URLSearchParams(initData);
@@ -23,10 +30,5 @@ export class AuthService {
       .digest('hex');
 
     return hmac === hash;
-  }
-
-  generateJwt(user: any): string {
-    const payload = { sub: user.id, username: user.username };
-    return this.jwtService.sign(payload);
   }
 }

@@ -8,6 +8,7 @@ import {
   HttpStatus,
   NotFoundException,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -27,6 +28,7 @@ import {
   UpdateDailyStreakDto,
   ReferralResponseDto,
 } from './dto/user.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 export class UserResponse {
   @ApiProperty({ type: User })
@@ -99,9 +101,12 @@ export class UserController {
     type: UserResponse,
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async initUser(
-    @Body() data: InitUserDto,
-  ): Promise<{ user: User; isNew: boolean; token: string }> {
+  async initUser(@Body() data: InitUserDto): Promise<{
+    user: User;
+    isNew: boolean;
+    accessToken: string;
+    refreshToken: string;
+  }> {
     try {
       const result = await this.userService.initUser(
         data.telegram_id,
@@ -110,7 +115,7 @@ export class UserController {
         data.is_premium,
         data.locale,
       );
-      if (!result.token) {
+      if (!result.accessToken || !result.refreshToken) {
         throw new HttpException(
           { error: 'Token generation failed' },
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -125,6 +130,7 @@ export class UserController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('stats/:telegram_id')
   @ApiOperation({ summary: 'Get user statistics' })
   @ApiParam({
@@ -149,6 +155,7 @@ export class UserController {
     return this.userService.getUserStats(telegram_id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('change-locale')
   @ApiOperation({ summary: 'Change the locale of a user' })
   @ApiBody({
@@ -179,6 +186,7 @@ export class UserController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':telegram_id/balance')
   @ApiOperation({ summary: 'Get balance by Telegram ID' })
   @ApiParam({
@@ -196,6 +204,7 @@ export class UserController {
     return this.userService.findBalance(telegram_id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':telegram_id/balance/increase')
   @ApiOperation({ summary: 'Increase user balance' })
   @ApiResponse({
@@ -218,6 +227,7 @@ export class UserController {
     return this.userService.increaseBalance(telegram_id, data.amount);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':telegram_id/balance/deduct')
   @ApiOperation({ summary: 'Deduct user balance' })
   @ApiResponse({
@@ -241,6 +251,7 @@ export class UserController {
     return this.userService.deductBalance(telegram_id, data.amount);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('balance/leaderboard/top')
   @ApiOperation({ summary: 'Get top balances' })
   @ApiResponse({
@@ -258,6 +269,7 @@ export class UserController {
     return this.userService.getTopBalances();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':telegram_id/balance/update-time')
   @ApiOperation({ summary: 'Get balance and update AFK start time' })
   @ApiParam({
@@ -277,6 +289,7 @@ export class UserController {
     return this.userService.getBalanceAndUpdateTime(telegram_id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':telegram_id/daily-bonus')
   @ApiOperation({ summary: 'Get daily bonus status' })
   @ApiParam({
@@ -307,6 +320,7 @@ export class UserController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':telegram_id/daily-bonus/update')
   @ApiOperation({ summary: 'Update daily bonus streak' })
   @ApiBody({
@@ -333,6 +347,7 @@ export class UserController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':telegram_id/referral')
   @ApiOperation({ summary: 'Get referral info' })
   @ApiParam({
@@ -361,6 +376,7 @@ export class UserController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('referral/all')
   @ApiOperation({ summary: 'Get all referrals' })
   @ApiResponse({
@@ -381,6 +397,7 @@ export class UserController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('referral/claim')
   @ApiOperation({ summary: 'Claim referral reward' })
   @ApiBody({
@@ -414,6 +431,7 @@ export class UserController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':telegram_id/quest')
   @ApiOperation({ summary: 'Get user quest by Telegram ID' })
   @ApiParam({
@@ -433,6 +451,7 @@ export class UserController {
     return this.userService.findUserQuests(telegram_id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':telegram_id/quest/mark-done')
   @ApiOperation({ summary: 'Mark a quest as done' })
   @ApiBody({
@@ -455,6 +474,7 @@ export class UserController {
     return this.userService.markQuestAsDone(telegram_id, data.quest_id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':telegram_id/upgrades')
   @ApiOperation({ summary: 'Get all user upgrades by Telegram ID' })
   @ApiParam({
@@ -474,6 +494,7 @@ export class UserController {
     return this.userService.findUserUpgrades(telegram_id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('upgrade')
   @ApiOperation({ summary: 'Upgrade a user' })
   @ApiBody({
@@ -501,6 +522,7 @@ export class UserController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('afk-farm/top-earnings')
   @ApiOperation({ summary: 'Get top 10 players by coins per hour' })
   @ApiResponse({

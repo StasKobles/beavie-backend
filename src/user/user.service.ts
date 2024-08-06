@@ -80,13 +80,18 @@ export class UserService {
     ref_id?: number | null,
     is_premium?: boolean,
     locale?: string,
-  ): Promise<{ user: User; isNew: boolean; token: string }> {
+  ): Promise<{
+    user: User;
+    isNew: boolean;
+    accessToken: string;
+    refreshToken: string;
+  }> {
     const existingUser = await this.findOne(telegram_id);
     const award = is_premium ? 5000 : 750;
 
     if (existingUser) {
-      const token = this.authService.generateJwt(existingUser);
-      return { user: existingUser, isNew: false, token };
+      const tokens = this.authService.generateTokens(existingUser);
+      return { user: existingUser, isNew: false, ...tokens };
     }
 
     if (!username || username.trim() === '') {
@@ -121,9 +126,9 @@ export class UserService {
     );
 
     const newUser = await this.findOne(telegram_id);
-    const token = this.authService.generateJwt(newUser);
+    const tokens = this.authService.generateTokens(newUser);
 
-    return { user: newUser, isNew: true, token };
+    return { user: newUser, isNew: true, ...tokens };
   }
 
   async getUserStats(telegram_id: number): Promise<any> {

@@ -1,30 +1,28 @@
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly jwtService: JwtService,
+  ) {}
 
-  @Post('login')
-  async login(@Body() body: { initData: string }) {
-    const botToken = process.env.BOT_TOKEN;
-    const isValid = this.authService.validateInitData(body.initData, botToken);
-
-    if (!isValid) {
-      throw new BadRequestException('Invalid init data');
+  @Post('refresh')
+  async refresh(@Body() body: { refreshToken: string }) {
+    try {
+      const payload = this.jwtService.verify(body.refreshToken);
+      const tokens = this.authService.generateTokens(payload);
+      return tokens;
+    } catch (error) {
+      throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
     }
-
-    const user = this.extractUserFromInitData(body.initData);
-    const jwt = this.authService.generateJwt(user);
-
-    return { access_token: jwt };
-  }
-
-  private extractUserFromInitData(initData: string): any {
-    const params = new URLSearchParams(initData);
-    return {
-      id: params.get('user_id'),
-      username: params.get('username'),
-    };
   }
 }

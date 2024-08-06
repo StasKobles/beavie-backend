@@ -6,6 +6,8 @@ import { UserModule } from './user/user.module';
 import { QuestModule } from './quest/quest.module';
 import { UpgradeModule } from './upgrade/upgrade.module';
 import { AuthModule } from './auth/auth.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -27,6 +29,12 @@ import { AuthModule } from './auth/auth.module';
     QuestModule,
     UpgradeModule,
     AuthModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
 export class AppModule {}
