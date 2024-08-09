@@ -12,12 +12,9 @@ export class AuthService {
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
     return { accessToken, refreshToken };
   }
-
   validateInitData(initData: string, botToken: string): boolean {
     try {
-      const params = new URLSearchParams(initData);
-      const vals = Object.fromEntries(params.entries());
-
+      const vals = Object.fromEntries(new URLSearchParams(initData).entries());
       const hash = vals.hash;
       delete vals.hash;
 
@@ -38,7 +35,6 @@ export class AuthService {
 
       return hmac === hash;
     } catch (error) {
-      console.error('Error validating initData:', error);
       return false;
     }
   }

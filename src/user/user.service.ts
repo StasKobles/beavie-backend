@@ -85,7 +85,6 @@ export class UserService {
   }> {
     const { username, is_premium, locale, telegram_id } =
       this.authService.extractUserData(initData);
-
     const existingUser = await this.findOne(telegram_id);
     const award = is_premium ? 5000 : 750;
 
