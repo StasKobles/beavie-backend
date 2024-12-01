@@ -6,24 +6,20 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
-  Param,
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiOperation,
-  ApiParam,
   ApiProperty,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthService } from 'src/auth/auth.service';
-import {
-  InitUserDto,
-  ReferralResponseDto,
-  UpdateDailyStreakDto,
-} from './dto/user.dto';
+import { GetUser } from 'src/decorators/get-user.decorator';
+import { InitUserDto, ReferralResponseDto } from './dto/user.dto';
 import { Balance } from './entities/balance.entity';
 import { UserQuest } from './entities/user-quest.entity';
 import { UserUpgrade } from './entities/user-upgrade.entity';
@@ -41,22 +37,6 @@ export class UserResponse {
   token: string;
 }
 
-class BalanceResponse {
-  @ApiProperty({ example: 1000 })
-  balance: number;
-
-  @ApiProperty({ example: '2024-01-01T00:00:00Z' })
-  updated_at: string;
-}
-
-class DailyBonusResponse {
-  @ApiProperty({ example: 1 })
-  daily_streak: number;
-
-  @ApiProperty({ example: false })
-  reward_claimed_today: boolean;
-}
-
 class TopBalanceResponse {
   @ApiProperty({ example: 1 })
   rank: number;
@@ -69,14 +49,6 @@ class TopBalanceResponse {
 
   @ApiProperty({ example: 'user1' })
   username: string;
-}
-
-class QuestResponse {
-  @ApiProperty({ example: 1 })
-  quest_id: number;
-
-  @ApiProperty({ example: true })
-  is_done: boolean;
 }
 
 class ReferralResponse {
@@ -127,17 +99,12 @@ export class UserController {
     }
   }
 
-  @Get('stats/:telegram_id')
+  @ApiBearerAuth()
+  @Get('stats')
   @ApiOperation({ summary: 'Get user statistics' })
-  @ApiParam({
-    name: 'telegram_id',
-    type: Number,
-    description: 'Telegram ID of the user',
-  })
   @ApiResponse({
     status: 200,
     description: 'User statistics retrieved',
-    type: Object,
     schema: {
       example: {
         total_balance: 1000,
@@ -146,33 +113,28 @@ export class UserController {
       },
     },
   })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  async getUserStats(@Param('telegram_id') telegram_id: number): Promise<any> {
+  async getUserStats(
+    @GetUser('telegram_id') telegram_id: number,
+  ): Promise<any> {
     return this.userService.getUserStats(telegram_id);
   }
 
+  @ApiBearerAuth()
   @Post('change-locale')
   @ApiOperation({ summary: 'Change the locale of a user' })
   @ApiBody({
     schema: {
       example: {
-        telegram_id: 123456789,
         locale: 'ru',
       },
     },
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Locale changed successfully',
-    type: UserResponse,
-  })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiResponse({ status: 500, description: 'Internal server error' })
   async changeLocale(
-    @Body() data: { telegram_id: number; locale: string },
+    @GetUser('telegram_id') telegram_id: number,
+    @Body() data: { locale: string },
   ): Promise<User> {
     try {
-      return await this.userService.changeLocale(data.telegram_id, data.locale);
+      return await this.userService.changeLocale(telegram_id, data.locale);
     } catch (error) {
       throw new HttpException(
         { error: error.message },
@@ -181,31 +143,18 @@ export class UserController {
     }
   }
 
-  @Get(':telegram_id/balance')
-  @ApiOperation({ summary: 'Get balance by Telegram ID' })
-  @ApiParam({
-    name: 'telegram_id',
-    type: Number,
-    description: 'Telegram ID of the user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Successful',
-    type: BalanceResponse,
-  })
-  @ApiResponse({ status: 404, description: 'Balance not found' })
-  findBalance(@Param('telegram_id') telegram_id: number): Promise<Balance> {
+  @ApiBearerAuth()
+  @Get('balance')
+  @ApiOperation({ summary: 'Get user balance' })
+  async findBalance(
+    @GetUser('telegram_id') telegram_id: number,
+  ): Promise<Balance> {
     return this.userService.findBalance(telegram_id);
   }
 
-  @Post(':telegram_id/balance/increase')
+  @ApiBearerAuth()
+  @Post('balance/increase')
   @ApiOperation({ summary: 'Increase user balance' })
-  @ApiResponse({
-    status: 200,
-    description: 'Balance increased successfully',
-    type: BalanceResponse,
-  })
-  @ApiResponse({ status: 404, description: 'User not found' })
   @ApiBody({
     schema: {
       properties: {
@@ -214,21 +163,15 @@ export class UserController {
     },
   })
   increaseBalance(
-    @Param('telegram_id') telegram_id: number,
+    @GetUser('telegram_id') telegram_id: number,
     @Body() data: { amount: number },
   ): Promise<Balance> {
     return this.userService.increaseBalance(telegram_id, data.amount);
   }
 
-  @Post(':telegram_id/balance/deduct')
+  @ApiBearerAuth()
+  @Post('balance/deduct')
   @ApiOperation({ summary: 'Deduct user balance' })
-  @ApiResponse({
-    status: 200,
-    description: 'Balance deducted successfully',
-    type: BalanceResponse,
-  })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiResponse({ status: 400, description: 'Insufficient balance' })
   @ApiBody({
     schema: {
       properties: {
@@ -237,12 +180,13 @@ export class UserController {
     },
   })
   deductBalance(
-    @Param('telegram_id') telegram_id: number,
+    @GetUser('telegram_id') telegram_id: number,
     @Body() data: { amount: number },
   ): Promise<Balance> {
     return this.userService.deductBalance(telegram_id, data.amount);
   }
 
+  @ApiBearerAuth()
   @Get('balance/leaderboard/top')
   @ApiOperation({ summary: 'Get top balances' })
   @ApiResponse({
@@ -260,40 +204,20 @@ export class UserController {
     return this.userService.getTopBalances();
   }
 
-  @Get(':telegram_id/balance/update-time')
+  @ApiBearerAuth()
+  @Get('balance/update-time')
   @ApiOperation({ summary: 'Get balance and update AFK start time' })
-  @ApiParam({
-    name: 'telegram_id',
-    type: Number,
-    description: 'Telegram ID of the user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Successful',
-    type: BalanceResponse,
-  })
-  @ApiResponse({ status: 404, description: 'Balance not found' })
-  getBalanceAndUpdateTime(
-    @Param('telegram_id') telegram_id: number,
+  async getBalanceAndUpdateTime(
+    @GetUser('telegram_id') telegram_id: number,
   ): Promise<Balance> {
     return this.userService.getBalanceAndUpdateTime(telegram_id);
   }
 
-  @Get(':telegram_id/daily-bonus')
+  @ApiBearerAuth()
+  @Get('daily-bonus')
   @ApiOperation({ summary: 'Get daily bonus status' })
-  @ApiParam({
-    name: 'telegram_id',
-    type: Number,
-    description: 'Telegram ID of the user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Daily bonus status retrieved',
-    type: DailyBonusResponse,
-  })
-  @ApiResponse({ status: 404, description: 'User not found' })
   async findDailyBonus(
-    @Param('telegram_id') telegram_id: number,
+    @GetUser('telegram_id') telegram_id: number,
   ): Promise<{ daily_streak: number; reward_claimed_today: boolean }> {
     const dailyBonus = await this.userService.findDailyBonus(telegram_id);
     if (dailyBonus) {
@@ -309,60 +233,25 @@ export class UserController {
     }
   }
 
-  @Post(':telegram_id/daily-bonus/update')
+  @ApiBearerAuth()
+  @Post('daily-bonus/update')
   @ApiOperation({ summary: 'Update daily bonus streak' })
-  @ApiBody({
-    type: UpdateDailyStreakDto,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Daily bonus updated',
-    schema: {
-      example: {
-        success: true,
-        reward: 1000,
-      },
-    },
-  })
-  @ApiResponse({ status: 400, description: 'Invalid request data' })
   async updateDailyStreak(
-    @Param('telegram_id') telegram_id: number,
+    @GetUser('telegram_id') telegram_id: number,
   ): Promise<{ success: boolean; reward: number }> {
-    try {
-      return await this.userService.updateDailyStreak(telegram_id);
-    } catch (error) {
-      throw new HttpException({ error: error.message }, HttpStatus.BAD_REQUEST);
-    }
+    return await this.userService.updateDailyStreak(telegram_id);
   }
 
-  @Get(':telegram_id/referral')
+  @ApiBearerAuth()
+  @Get('referral')
   @ApiOperation({ summary: 'Get referral info' })
-  @ApiParam({
-    name: 'telegram_id',
-    type: Number,
-    description: 'Telegram ID of the user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Successful',
-    type: ReferralResponse,
-  })
-  @ApiResponse({ status: 404, description: 'No refs found for this user' })
   async findReferral(
-    @Param('telegram_id') telegram_id: number,
+    @GetUser('telegram_id') telegram_id: number,
   ): Promise<ReferralResponseDto> {
-    try {
-      return await this.userService.findReferral(telegram_id);
-    } catch (error) {
-      throw new HttpException(
-        { error: error.message },
-        error instanceof NotFoundException
-          ? HttpStatus.NOT_FOUND
-          : HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return await this.userService.findReferral(telegram_id);
   }
 
+  @ApiBearerAuth()
   @Get('referral/all')
   @ApiOperation({ summary: 'Get all referrals' })
   @ApiResponse({
@@ -383,12 +272,12 @@ export class UserController {
     }
   }
 
+  @ApiBearerAuth()
   @Post('referral/claim')
   @ApiOperation({ summary: 'Claim referral reward' })
   @ApiBody({
     schema: {
       example: {
-        telegram_id: 123456789,
         ref_id: 987654321,
       },
     },
@@ -400,10 +289,11 @@ export class UserController {
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   async claimReward(
-    @Body() data: { telegram_id: number; ref_id: number },
+    @GetUser('telegram_id') telegram_id: number,
+    @Body() data: { ref_id: number },
   ): Promise<{ success: boolean }> {
     try {
-      await this.userService.claimReward(data.telegram_id, data.ref_id);
+      await this.userService.claimReward(telegram_id, data.ref_id);
       return { success: true };
     } catch (error) {
       throw new HttpException(
@@ -416,26 +306,17 @@ export class UserController {
     }
   }
 
-  @Get(':telegram_id/quest')
-  @ApiOperation({ summary: 'Get user quest by Telegram ID' })
-  @ApiParam({
-    name: 'telegram_id',
-    type: Number,
-    description: 'Telegram ID of the user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'User quest found',
-    type: [QuestResponse],
-  })
-  @ApiResponse({ status: 404, description: 'User quest not found' })
+  @ApiBearerAuth()
+  @Get('quest')
+  @ApiOperation({ summary: 'Get user quests' })
   findOneQuest(
-    @Param('telegram_id') telegram_id: number,
+    @GetUser('telegram_id') telegram_id: number,
   ): Promise<UserQuest[]> {
     return this.userService.findUserQuests(telegram_id);
   }
 
-  @Post(':telegram_id/quest/mark-done')
+  @ApiBearerAuth()
+  @Post('quest/mark-done')
   @ApiOperation({ summary: 'Mark a quest as done' })
   @ApiBody({
     schema: {
@@ -444,65 +325,44 @@ export class UserController {
       },
     },
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Quest marked as done',
-    type: QuestResponse,
-  })
-  @ApiResponse({ status: 400, description: 'Invalid request data' })
   markQuestAsDone(
-    @Param('telegram_id') telegram_id: number,
+    @GetUser('telegram_id') telegram_id: number,
     @Body() data: { quest_id: number },
   ): Promise<UserQuest> {
     return this.userService.markQuestAsDone(telegram_id, data.quest_id);
   }
-
-  @Get(':telegram_id/upgrades')
-  @ApiOperation({ summary: 'Get all user upgrades by Telegram ID' })
-  @ApiParam({
-    name: 'telegram_id',
-    type: Number,
-    description: 'Telegram ID of the user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'All user upgrades found',
-    type: [UserUpgrade],
-  })
-  @ApiResponse({ status: 404, description: 'User upgrades not found' })
+  @ApiBearerAuth()
+  @Get('upgrades')
+  @ApiOperation({ summary: 'Get all user upgrades' })
   findUserUpgrades(
-    @Param('telegram_id') telegram_id: number,
+    @GetUser('telegram_id') telegram_id: number,
   ): Promise<UserUpgrade[]> {
     return this.userService.findUserUpgrades(telegram_id);
   }
 
+  @ApiBearerAuth()
   @Post('upgrade')
   @ApiOperation({ summary: 'Upgrade a user' })
   @ApiBody({
     schema: {
       example: {
-        telegram_id: 123456789,
         upgrade_id: 1,
         level: 2,
       },
     },
   })
-  @ApiResponse({
-    status: 200,
-    description: 'User upgraded successfully',
-    type: UserUpgrade,
-  })
-  @ApiResponse({ status: 400, description: 'Invalid request data' })
   upgradeUser(
-    @Body() data: { telegram_id: number; upgrade_id: number; level: number },
+    @GetUser('telegram_id') telegram_id: number,
+    @Body() data: { upgrade_id: number; level: number },
   ): Promise<UserUpgrade> {
     return this.userService.upgradeUser(
-      data.telegram_id,
+      telegram_id,
       data.upgrade_id,
       data.level,
     );
   }
 
+  @ApiBearerAuth()
   @Get('afk-farm/top-earnings')
   @ApiOperation({ summary: 'Get top 10 players by coins per hour' })
   @ApiResponse({
