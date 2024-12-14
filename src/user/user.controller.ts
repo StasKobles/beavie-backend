@@ -25,6 +25,7 @@ import { UserQuest } from './entities/user-quest.entity';
 import { UserUpgrade } from './entities/user-upgrade.entity';
 import { User } from './user.entity';
 import { UserService } from './user.service';
+import { Public } from 'src/decorators/public.decorator';
 
 export class UserResponse {
   @ApiProperty({ type: User })
@@ -67,6 +68,7 @@ export class UserController {
     private readonly authService: AuthService,
   ) {}
 
+  @Public()
   @Post('init')
   @ApiOperation({ summary: 'Initialize a new user' })
   @ApiBody({ type: InitUserDto })
@@ -84,7 +86,6 @@ export class UserController {
   }> {
     const botToken = process.env.BOT_TOKEN;
     if (!this.authService.validateInitData(data.initData, botToken)) {
-      console.log('Validation failed');
       throw new UnauthorizedException('Invalid init data');
     }
 
@@ -307,7 +308,7 @@ export class UserController {
   }
 
   @ApiBearerAuth()
-  @Get('quest')
+  @Get('quests')
   @ApiOperation({ summary: 'Get user quests' })
   findOneQuest(
     @GetUser('telegram_id') telegram_id: number,
@@ -331,6 +332,7 @@ export class UserController {
   ): Promise<UserQuest> {
     return this.userService.markQuestAsDone(telegram_id, data.quest_id);
   }
+
   @ApiBearerAuth()
   @Get('upgrades')
   @ApiOperation({ summary: 'Get all user upgrades' })

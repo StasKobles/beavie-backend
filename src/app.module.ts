@@ -8,6 +8,7 @@ import { UpgradeModule } from './upgrade/upgrade.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { BalanceUpdateModule } from './balance-update/balance-update.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
     QuestModule,
     UpgradeModule,
     AuthModule,
+    BalanceUpdateModule,
   ],
   providers: [
     {

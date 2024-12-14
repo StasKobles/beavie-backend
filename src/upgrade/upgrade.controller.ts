@@ -1,6 +1,6 @@
 // upgrade.controller.ts
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Upgrade } from './upgrade.entity';
 import { UpgradeService } from './upgrade.service';
 

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
+import { Public } from 'src/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -15,6 +16,7 @@ export class AuthController {
     private readonly jwtService: JwtService,
   ) {}
 
+  @Public()
   @Post('refresh')
   async refresh(@Body() body: { refreshToken: string }) {
     try {

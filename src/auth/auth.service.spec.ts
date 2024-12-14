@@ -66,7 +66,10 @@ describe('AuthService', () => {
   describe('generateTokens', () => {
     it('should generate access and refresh tokens', () => {
       const user = { id: 1, username: 'test' };
-      const tokens = service.generateTokens(user);
+      const tokens = service.generateTokens({
+        telegram_id: user.id,
+        username: user.username,
+      });
 
       expect(tokens).toEqual({
         accessToken: 'access_token',
@@ -76,7 +79,10 @@ describe('AuthService', () => {
 
     it('should call JwtService sign method twice with correct parameters', () => {
       const user = { id: 1, username: 'test' };
-      service.generateTokens(user);
+      service.generateTokens({
+        telegram_id: user.id,
+        username: user.username,
+      });
 
       expect(jwtService.sign).toHaveBeenCalledTimes(2);
       expect(jwtService.sign).toHaveBeenCalledWith(

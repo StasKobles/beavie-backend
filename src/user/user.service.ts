@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -87,9 +88,11 @@ export class UserService {
       this.authService.extractUserData(initData);
     const existingUser = await this.findOne(telegram_id);
     const award = is_premium ? 5000 : 750;
-
     if (existingUser) {
-      const tokens = this.authService.generateTokens(existingUser);
+      const tokens = this.authService.generateTokens({
+        telegram_id,
+        username,
+      });
       return { user: existingUser, isNew: false, ...tokens };
     }
 
@@ -111,7 +114,6 @@ export class UserService {
         await transactionalEntityManager.save(newUser);
 
         await this.createUsername(telegram_id, username);
-
         if (ref_id) {
           await this.addReferral(ref_id, telegram_id, is_premium);
           await this.increaseBalance(telegram_id, award);
@@ -125,7 +127,10 @@ export class UserService {
     );
 
     const newUser = await this.findOne(telegram_id);
-    const tokens = this.authService.generateTokens(newUser);
+    const tokens = this.authService.generateTokens({
+      telegram_id,
+      username,
+    });
 
     return { user: newUser, isNew: true, ...tokens };
   }
@@ -370,24 +375,31 @@ export class UserService {
       relations: ['user'],
     });
 
+    if (!referrals || referrals.length === 0) {
+      // Если рефералов нет, возвращаем пустой массив
+      return [];
+    }
+
     return await Promise.all(
       referrals.map(async (referral) => {
         const refs = await Promise.all(
-          referral.user.referrals.map(async (ref) => {
-            const username = await this.usernamesRepository.findOne({
-              where: { telegram_id: ref.ref_id },
-            });
-            const passiveIncome = await this.afkFarmRepository.findOne({
-              where: { telegram_id: ref.ref_id },
-            });
-            return {
-              ref_id: ref.ref_id,
-              reward_received: ref.reward_received,
-              award: ref.award,
-              username: username ? username.username : 'Unnamed User',
-              passiveIncome: passiveIncome ? passiveIncome.coins_per_hour : 0,
-            };
-          }),
+          (referral.user.referrals || [])
+            .filter((ref) => ref.reward_received === false) // Фильтрация по reward_received
+            .map(async (ref) => {
+              const username = await this.usernamesRepository.findOne({
+                where: { telegram_id: ref.ref_id },
+              });
+              const passiveIncome = await this.afkFarmRepository.findOne({
+                where: { telegram_id: ref.ref_id },
+              });
+              return {
+                ref_id: ref.ref_id,
+                reward_received: ref.reward_received,
+                award: ref.award,
+                username: username ? username.username : 'Unnamed User',
+                passiveIncome: passiveIncome ? passiveIncome.coins_per_hour : 0,
+              };
+            }),
         );
 
         // Сортировка по passiveIncome от большего к меньшему
@@ -488,10 +500,12 @@ export class UserService {
 
   // User Quests
   async findUserQuests(telegram_id: number): Promise<UserQuest[]> {
-    return this.userQuestRepository.find({
+    const userQuests = await this.userQuestRepository.find({
       where: { user: { telegram_id } },
       relations: ['quest'],
     });
+    // Возвращаем пустой массив, если квесты не найдены
+    return userQuests;
   }
 
   async markQuestAsDone(
@@ -560,29 +574,61 @@ export class UserService {
     upgrade_id: number,
     level: number,
   ): Promise<UserUpgrade> {
+    const logger = new Logger('UserUpgradeService');
+    logger.log(
+      `Starting upgrade for telegram_id: ${telegram_id}, upgrade_id: ${upgrade_id}, level: ${level}`,
+    );
+
+    if (!telegram_id) {
+      logger.error('telegram_id is undefined');
+      throw new HttpException('Invalid telegram_id', HttpStatus.BAD_REQUEST);
+    }
+
     const upgrade = await this.upgradeRepository.findOne({
       where: { upgrade_id },
     });
     if (!upgrade) {
+      logger.error(`Upgrade not found for upgrade_id: ${upgrade_id}`);
       throw new HttpException('Upgrade not found', HttpStatus.NOT_FOUND);
+    }
+
+    logger.log(`Upgrade found: ${JSON.stringify(upgrade)}`);
+
+    const user = await this.userRepository.findOne({
+      where: { telegram_id },
+    });
+    if (!user) {
+      logger.error(`User not found for telegram_id: ${telegram_id}`);
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
 
     let userUpgrade = await this.userUpgradeRepository.findOne({
       where: { user: { telegram_id }, upgrade: { upgrade_id } },
     });
 
+    logger.log(`Existing userUpgrade: ${JSON.stringify(userUpgrade)}`);
+
     let currentLevel = 0;
+
     if (userUpgrade) {
       currentLevel = userUpgrade.level;
       userUpgrade.level = level;
       userUpgrade.upgraded_at = new Date();
+
+      logger.log(`Updated userUpgrade object: ${JSON.stringify(userUpgrade)}`);
+      await this.userUpgradeRepository.save(userUpgrade);
+      logger.log('User upgrade saved successfully.');
     } else {
       userUpgrade = this.userUpgradeRepository.create({
-        user: { telegram_id } as User,
+        user,
         upgrade,
         level,
         upgraded_at: new Date(),
       });
+
+      logger.log(
+        `Created new userUpgrade object: ${JSON.stringify(userUpgrade)}`,
+      );
     }
 
     let totalCost = 0;
@@ -594,16 +640,29 @@ export class UserService {
       totalCost += cost;
     }
 
+    logger.log(`Total cost calculated: ${totalCost}`);
+
     const userBalance = await this.findBalance(telegram_id);
     if (!userBalance || userBalance.balance < totalCost) {
+      logger.error(
+        `Insufficient balance for telegram_id: ${telegram_id}, required: ${totalCost}, available: ${userBalance?.balance || 0}`,
+      );
       throw new HttpException('Insufficient balance', HttpStatus.BAD_REQUEST);
     }
+
+    logger.log(`Sufficient balance found: ${userBalance.balance}`);
 
     await this.deductBalance(telegram_id, totalCost);
 
     const savedUserUpgrade = await this.userUpgradeRepository.save(userUpgrade);
 
+    logger.log(
+      `User upgrade finalized and saved: ${JSON.stringify(savedUserUpgrade)}`,
+    );
+
     await this.updateAfkFarmIncome(telegram_id);
+
+    logger.log(`AFK farm income updated for telegram_id: ${telegram_id}`);
 
     return savedUserUpgrade;
   }
