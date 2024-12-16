@@ -3,10 +3,10 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { AuthService } from 'src/auth/auth.service';
 import { Quest } from 'src/quest/quest.entity';
 import { Upgrade } from 'src/upgrade/upgrade.entity';
 import { Repository } from 'typeorm';
@@ -19,7 +19,6 @@ import { UserQuest } from './entities/user-quest.entity';
 import { UserUpgrade } from './entities/user-upgrade.entity';
 import { Usernames } from './entities/usernames.entity';
 import { User } from './user.entity';
-import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UserService {
@@ -574,13 +573,7 @@ export class UserService {
     upgrade_id: number,
     level: number,
   ): Promise<UserUpgrade> {
-    const logger = new Logger('UserUpgradeService');
-    logger.log(
-      `Starting upgrade for telegram_id: ${telegram_id}, upgrade_id: ${upgrade_id}, level: ${level}`,
-    );
-
     if (!telegram_id) {
-      logger.error('telegram_id is undefined');
       throw new HttpException('Invalid telegram_id', HttpStatus.BAD_REQUEST);
     }
 
@@ -588,25 +581,19 @@ export class UserService {
       where: { upgrade_id },
     });
     if (!upgrade) {
-      logger.error(`Upgrade not found for upgrade_id: ${upgrade_id}`);
       throw new HttpException('Upgrade not found', HttpStatus.NOT_FOUND);
     }
-
-    logger.log(`Upgrade found: ${JSON.stringify(upgrade)}`);
 
     const user = await this.userRepository.findOne({
       where: { telegram_id },
     });
     if (!user) {
-      logger.error(`User not found for telegram_id: ${telegram_id}`);
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
 
     let userUpgrade = await this.userUpgradeRepository.findOne({
       where: { user: { telegram_id }, upgrade: { upgrade_id } },
     });
-
-    logger.log(`Existing userUpgrade: ${JSON.stringify(userUpgrade)}`);
 
     let currentLevel = 0;
 
@@ -615,9 +602,7 @@ export class UserService {
       userUpgrade.level = level;
       userUpgrade.upgraded_at = new Date();
 
-      logger.log(`Updated userUpgrade object: ${JSON.stringify(userUpgrade)}`);
       await this.userUpgradeRepository.save(userUpgrade);
-      logger.log('User upgrade saved successfully.');
     } else {
       userUpgrade = this.userUpgradeRepository.create({
         user,
@@ -625,10 +610,6 @@ export class UserService {
         level,
         upgraded_at: new Date(),
       });
-
-      logger.log(
-        `Created new userUpgrade object: ${JSON.stringify(userUpgrade)}`,
-      );
     }
 
     let totalCost = 0;
@@ -640,29 +621,16 @@ export class UserService {
       totalCost += cost;
     }
 
-    logger.log(`Total cost calculated: ${totalCost}`);
-
     const userBalance = await this.findBalance(telegram_id);
     if (!userBalance || userBalance.balance < totalCost) {
-      logger.error(
-        `Insufficient balance for telegram_id: ${telegram_id}, required: ${totalCost}, available: ${userBalance?.balance || 0}`,
-      );
       throw new HttpException('Insufficient balance', HttpStatus.BAD_REQUEST);
     }
-
-    logger.log(`Sufficient balance found: ${userBalance.balance}`);
 
     await this.deductBalance(telegram_id, totalCost);
 
     const savedUserUpgrade = await this.userUpgradeRepository.save(userUpgrade);
 
-    logger.log(
-      `User upgrade finalized and saved: ${JSON.stringify(savedUserUpgrade)}`,
-    );
-
     await this.updateAfkFarmIncome(telegram_id);
-
-    logger.log(`AFK farm income updated for telegram_id: ${telegram_id}`);
 
     return savedUserUpgrade;
   }
