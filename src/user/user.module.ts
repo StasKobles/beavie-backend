@@ -1,29 +1,41 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UserService } from './user.service';
+import { Quest } from 'src/quest/quest.entity';
+import { QuestModule } from 'src/quest/quest.module';
+import { Upgrade } from 'src/upgrade/upgrade.entity';
+import { UpgradeModule } from 'src/upgrade/upgrade.module';
+import { AfkFarm } from 'src/user/entities/afk-farm.entity';
+import { Balance } from 'src/user/entities/balance.entity';
+import { DailyBonus } from 'src/user/entities/daily-bonus.entity';
+import { Referral } from 'src/user/entities/referral.entity';
+import { UserQuest } from 'src/user/entities/user-quest.entity';
+import { UserUpgrade } from 'src/user/entities/user-upgrade.entity';
+import { Usernames } from 'src/user/entities/usernames.entity';
 import { UserController } from './user.controller';
 import { User } from './user.entity';
-import { UsernamesModule } from '../usernames/usernames.module';
-import { BalanceModule } from '../balance/balance.module';
-import { DailyBonusModule } from '../daily-bonus/daily-bonus.module'; // Импортируем DailyBonusModule
-import { ReferralModule } from '../referral/referral.module';
-import { UserQuestModule } from 'src/user-quest/user-quest.module';
-import { UserUpgradeModule } from 'src/user-upgrade/user-upgrade.module';
-import { AfkFarmModule } from 'src/afk-farm/afk-farm.module';
+import { UserService } from './user.service';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]), // Импортируем сущность User
-    UsernamesModule, // Импортируем модуль Usernames
-    BalanceModule, // Импортируем модуль Balance
-    DailyBonusModule, // Импортируем модуль DailyBonus
-    ReferralModule, // Импортируем модуль Referral
-    UserQuestModule, // Импортируйте UserQuestModule
-    UserUpgradeModule, // Импортируйте UserUpgradeModule
-    AfkFarmModule,
+    TypeOrmModule.forFeature([
+      User,
+      Referral,
+      UserUpgrade,
+      UserQuest,
+      Balance,
+      AfkFarm,
+      DailyBonus,
+      Usernames,
+      Upgrade,
+      Quest,
+    ]),
+    UpgradeModule,
+    QuestModule,
+    AuthModule,
   ],
-  providers: [UserService],
   controllers: [UserController],
+  providers: [UserService],
   exports: [UserService],
 })
 export class UserModule {}

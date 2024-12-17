@@ -1,19 +1,15 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { QuestModule } from './quest/quest.module';
-import { UserModule } from './user/user.module';
-import { BalanceModule } from './balance/balance.module';
-import { ReferralModule } from './referral/referral.module';
-import { DailyBonusModule } from './daily-bonus/daily-bonus.module';
-import { UserQuestModule } from './user-quest/user-quest.module';
-import { UpgradeModule } from './upgrade/upgrade.module';
-import { UserUpgradeModule } from './user-upgrade/user-upgrade.module';
-import { UsernamesModule } from './usernames/usernames.module';
+import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
-import { AfkFarmModule } from './afk-farm/afk-farm.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { BalanceUpdateModule } from './balance-update/balance-update.module';
-import { BackupService } from './backup/backup.service';
+import { InvoiceModule } from './invoice/invoice.module';
+import { QuestModule } from './quest/quest.module';
+import { UpgradeModule } from './upgrade/upgrade.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -30,19 +26,19 @@ import { BackupService } from './backup/backup.service';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true, // Включаем синхронизацию для тестовой базы
     }),
-    UserModule,
-    BalanceModule,
-    ReferralModule,
-    DailyBonusModule,
-    QuestModule,
-    UserQuestModule,
-    UpgradeModule,
-    UserUpgradeModule,
-    UsernamesModule,
-    AfkFarmModule,
-    BalanceUpdateModule,
     ScheduleModule.forRoot(),
+    UserModule,
+    QuestModule,
+    UpgradeModule,
+    AuthModule,
+    BalanceUpdateModule,
+    InvoiceModule,
   ],
-  providers: [BackupService],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}
