@@ -329,7 +329,7 @@ export class UserController {
   markQuestAsDone(
     @GetUser('telegram_id') telegram_id: number,
     @Body() data: { quest_id: number },
-  ): Promise<UserQuest> {
+  ): Promise<UserQuest[]> {
     return this.userService.markQuestAsDone(telegram_id, data.quest_id);
   }
 

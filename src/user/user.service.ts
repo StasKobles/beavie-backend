@@ -511,10 +511,11 @@ export class UserService {
   async markQuestAsDone(
     telegram_id: number,
     quest_id: number,
-  ): Promise<UserQuest> {
+  ): Promise<UserQuest[]> {
     const quest = await this.questRepository.findOne({
       where: { quest_id },
     });
+
     if (!quest) {
       throw new NotFoundException('Quest not found');
     }
@@ -535,8 +536,10 @@ export class UserService {
       }
     }
 
+    // Обновление баланса
     await this.increaseBalance(telegram_id, quest.reward);
 
+    // Обновление статуса квеста
     let userQuest = await this.userQuestRepository.findOne({
       where: { user: { telegram_id }, quest: { quest_id } },
     });
@@ -558,7 +561,13 @@ export class UserService {
       userQuest.is_done = true;
     }
 
-    return this.userQuestRepository.save(userQuest);
+    await this.userQuestRepository.save(userQuest);
+
+    // Возвращаем список всех квестов пользователя
+    return this.userQuestRepository.find({
+      where: { user: { telegram_id } },
+      relations: ['quest'],
+    });
   }
 
   // User Upgrades
