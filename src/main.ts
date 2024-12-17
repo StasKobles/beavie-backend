@@ -8,7 +8,7 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   if (process.env.NODE_ENV === 'production') {
-    const allowedOrigins = [process.env.CORS_URL, 'http://192.168.1.100'];
+    const allowedOrigins = [process.env.CORS_URL, 'http://localhost'];
 
     app.enableCors({
       origin: (origin, callback) => {
