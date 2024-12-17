@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
-import { UserModule } from './user/user.module';
-import { QuestModule } from './quest/quest.module';
-import { UpgradeModule } from './upgrade/upgrade.module';
-import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { BalanceUpdateModule } from './balance-update/balance-update.module';
+import { InvoiceModule } from './invoice/invoice.module';
+import { QuestModule } from './quest/quest.module';
+import { UpgradeModule } from './upgrade/upgrade.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { BalanceUpdateModule } from './balance-update/balance-update.module';
     UpgradeModule,
     AuthModule,
     BalanceUpdateModule,
+    InvoiceModule,
   ],
   providers: [
     {

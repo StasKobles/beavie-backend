@@ -24,7 +24,12 @@ async function bootstrap() {
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       preflightContinue: false,
       optionsSuccessStatus: 204,
-      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Accept',
+        'X-Auth-Token',
+      ],
       exposedHeaders: ['Content-Length', 'X-Kuma-Revision'],
     });
   } else {
@@ -34,7 +39,12 @@ async function bootstrap() {
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       preflightContinue: false,
       optionsSuccessStatus: 204,
-      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Accept',
+        'X-Auth-Token',
+      ],
       exposedHeaders: ['Content-Length', 'X-Kuma-Revision'],
     });
   }

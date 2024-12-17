@@ -19,6 +19,7 @@ import { UserQuest } from './entities/user-quest.entity';
 import { UserUpgrade } from './entities/user-upgrade.entity';
 import { Usernames } from './entities/usernames.entity';
 import { User } from './user.entity';
+import { getDelayTimes } from 'src/services/getDelayTimes';
 
 @Injectable()
 export class UserService {
@@ -628,6 +629,15 @@ export class UserService {
 
     await this.deductBalance(telegram_id, totalCost);
 
+    // После успешного апгрейда уровня
+    userUpgrade.level = level;
+    userUpgrade.upgraded_at = new Date();
+
+    const delay = getDelayTimes(level);
+    userUpgrade.cooldown_ends_at =
+      delay > 0 ? new Date(Date.now() + delay) : null;
+
+    // Сохраняем изменения
     const savedUserUpgrade = await this.userUpgradeRepository.save(userUpgrade);
 
     await this.updateAfkFarmIncome(telegram_id);

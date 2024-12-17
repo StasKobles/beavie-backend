@@ -18,4 +18,7 @@ export class UserUpgrade {
 
   @Column({ type: 'timestamp' })
   upgraded_at: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  cooldown_ends_at: Date;
 }
