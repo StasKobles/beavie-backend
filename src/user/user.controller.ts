@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   HttpException,
   HttpStatus,
   NotFoundException,
@@ -326,11 +327,12 @@ export class UserController {
       },
     },
   })
-  markQuestAsDone(
+  @HttpCode(200)
+  async markQuestAsDone(
     @GetUser('telegram_id') telegram_id: number,
     @Body() data: { quest_id: number },
-  ): Promise<UserQuest[]> {
-    return this.userService.markQuestAsDone(telegram_id, data.quest_id);
+  ): Promise<void> {
+    await this.userService.markQuestAsDone(telegram_id, data.quest_id);
   }
 
   @ApiBearerAuth()
