@@ -8,13 +8,10 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   if (process.env.NODE_ENV === 'production') {
-    const allowedOrigins = [process.env.CORS_URL, 'http://localhost'];
+    const allowedOrigins = [process.env.CORS_URL];
 
     app.enableCors({
       origin: (origin, callback) => {
-        logger.log(`Origin: ${origin}`);
-        logger.log(`Allowed Origins: ${allowedOrigins.join(', ')}`);
-
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {

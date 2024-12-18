@@ -60,7 +60,7 @@ export class InvoiceService {
 
     const payload = `upgrade_skip_${createInvoiceDto.description}_${userId}_${createInvoiceDto.upgrade_id}`;
     const endpoint =
-      process.env.NODE_ENV === 'development'
+      process.env.BOT_ENV === 'development'
         ? `${this.telegramApiUrl}/test/createInvoiceLink`
         : `${this.telegramApiUrl}/createInvoiceLink`;
 
