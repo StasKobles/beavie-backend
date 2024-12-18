@@ -84,8 +84,16 @@ export class UserService {
     accessToken: string;
     refreshToken: string;
   }> {
+    console.log(
+      'Initializing user with initData:',
+      initData,
+      'and ref_id:',
+      ref_id,
+    );
+
     const { username, is_premium, locale, telegram_id } =
       this.authService.extractUserData(initData);
+
     console.log('Extracted user data:', {
       username,
       is_premium,
@@ -93,53 +101,87 @@ export class UserService {
       telegram_id,
     });
 
-    const existingUser = await this.findOne(telegram_id);
-    const award = is_premium ? 5000 : 750;
-    if (existingUser) {
+    try {
+      const existingUser = await this.findOne(telegram_id);
+      console.log('Checked for existing user:', existingUser);
+
+      const award = is_premium ? 5000 : 750;
+      if (existingUser) {
+        console.log('User already exists. Generating tokens...');
+        const tokens = this.authService.generateTokens({
+          telegram_id,
+          username,
+        });
+        console.log('Generated tokens for existing user:', tokens);
+        return { user: existingUser, isNew: false, ...tokens };
+      }
+
+      if (!username || username.trim() === '') {
+        console.error('Username is missing or empty');
+        throw new HttpException(
+          { error: 'Username is required' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      console.log('Starting user creation transaction...');
+      await this.userRepository.manager.transaction(
+        async (transactionalEntityManager) => {
+          try {
+            const newUser = this.userRepository.create({
+              telegram_id,
+              registered_at: new Date(),
+              status: 'active',
+              locale,
+            });
+            console.log('Created new user entity:', newUser);
+
+            await transactionalEntityManager.save(newUser);
+            console.log('New user saved to database.');
+
+            await this.createUsername(telegram_id, username);
+            console.log('Username created:', username);
+
+            if (ref_id) {
+              console.log('Handling referral with ref_id:', ref_id);
+              await this.addReferral(ref_id, telegram_id, is_premium);
+              console.log('Referral processed successfully.');
+
+              await this.increaseBalance(telegram_id, award);
+              console.log('Balance increased for referred user by:', award);
+            } else {
+              console.log('No referral ID provided. Initializing balance...');
+              await this.increaseBalance(telegram_id, 0);
+              console.log('Balance initialized to 0.');
+            }
+
+            await this.createDailyBonus(telegram_id);
+            console.log('Daily bonus created for user.');
+
+            await this.updateAfkStartTime(telegram_id, new Date());
+            console.log('AFK start time updated for user.');
+          } catch (transactionError) {
+            console.error('Error during transaction:', transactionError);
+            throw transactionError; // Пробрасываем ошибку, чтобы откатить транзакцию
+          }
+        },
+      );
+
+      console.log('Transaction completed successfully.');
+      const newUser = await this.findOne(telegram_id);
+      console.log('New user retrieved from database:', newUser);
+
       const tokens = this.authService.generateTokens({
         telegram_id,
         username,
       });
-      return { user: existingUser, isNew: false, ...tokens };
+      console.log('Generated tokens for new user:', tokens);
+
+      return { user: newUser, isNew: true, ...tokens };
+    } catch (error) {
+      console.error('Error initializing user:', error);
+      throw error; // Пробрасываем ошибку, чтобы обработчик наверху мог её увидеть
     }
-
-    if (!username || username.trim() === '') {
-      throw new HttpException(
-        { error: 'Username is required' },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    await this.userRepository.manager.transaction(
-      async (transactionalEntityManager) => {
-        const newUser = this.userRepository.create({
-          telegram_id,
-          registered_at: new Date(),
-          status: 'active',
-          locale,
-        });
-        await transactionalEntityManager.save(newUser);
-
-        await this.createUsername(telegram_id, username);
-        if (ref_id) {
-          await this.addReferral(ref_id, telegram_id, is_premium);
-          await this.increaseBalance(telegram_id, award);
-        } else {
-          await this.increaseBalance(telegram_id, 0);
-        }
-
-        await this.createDailyBonus(telegram_id);
-        await this.updateAfkStartTime(telegram_id, new Date());
-      },
-    );
-
-    const newUser = await this.findOne(telegram_id);
-    const tokens = this.authService.generateTokens({
-      telegram_id,
-      username,
-    });
-
-    return { user: newUser, isNew: true, ...tokens };
   }
 
   async getUserStats(telegram_id: number): Promise<any> {
