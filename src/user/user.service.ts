@@ -86,6 +86,13 @@ export class UserService {
   }> {
     const { username, is_premium, locale, telegram_id } =
       this.authService.extractUserData(initData);
+    console.log('Extracted user data:', {
+      username,
+      is_premium,
+      locale,
+      telegram_id,
+    });
+
     const existingUser = await this.findOne(telegram_id);
     const award = is_premium ? 5000 : 750;
     if (existingUser) {
