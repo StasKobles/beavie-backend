@@ -1,23 +1,20 @@
 import { User } from '../user.entity';
-import { Entity, Column, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('referrals')
 export class Referral {
-  @PrimaryColumn({ type: 'bigint' })
-  user_id: number;
+  @PrimaryGeneratedColumn()
+  id: number; // Уникальный идентификатор для каждой записи
 
-  @PrimaryColumn({ type: 'bigint' })
-  ref_id: number;
+  @ManyToOne(() => User, (user) => user.referrals, { onDelete: 'CASCADE' })
+  user: User; // Пользователь, создавший реферал
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  ref: User; // Реферал-приглашенный
 
   @Column({ type: 'boolean', default: false })
   reward_received: boolean;
 
   @Column({ type: 'int', default: 0 })
   award: number;
-
-  @ManyToOne(() => User, (user) => user.referrals, { onDelete: 'CASCADE' })
-  user: User;
-
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  ref: User;
 }

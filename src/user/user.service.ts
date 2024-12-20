@@ -84,35 +84,18 @@ export class UserService {
     accessToken: string;
     refreshToken: string;
   }> {
-    console.log(
-      'Initializing user with initData:',
-      initData,
-      'and ref_id:',
-      ref_id,
-    );
-
     const { username, is_premium, locale, telegram_id } =
       this.authService.extractUserData(initData);
 
-    console.log('Extracted user data:', {
-      username,
-      is_premium,
-      locale,
-      telegram_id,
-    });
-
     try {
       const existingUser = await this.findOne(telegram_id);
-      console.log('Checked for existing user:', existingUser);
 
       const award = is_premium ? 5000 : 750;
       if (existingUser) {
-        console.log('User already exists. Generating tokens...');
         const tokens = this.authService.generateTokens({
           telegram_id,
           username,
         });
-        console.log('Generated tokens for existing user:', tokens);
         return { user: existingUser, isNew: false, ...tokens };
       }
 
@@ -124,58 +107,92 @@ export class UserService {
         );
       }
 
-      console.log('Starting user creation transaction...');
       await this.userRepository.manager.transaction(
         async (transactionalEntityManager) => {
           try {
+            // Создаем нового пользователя
             const newUser = this.userRepository.create({
               telegram_id,
               registered_at: new Date(),
               status: 'active',
               locale,
             });
-            console.log('Created new user entity:', newUser);
 
-            await transactionalEntityManager.save(newUser);
-            console.log('New user saved to database.');
+            // Сохраняем пользователя в таблицу users
+            const savedUser = await transactionalEntityManager.save(newUser);
 
-            await this.createUsername(telegram_id, username);
-            console.log('Username created:', username);
-
-            if (ref_id) {
-              console.log('Handling referral with ref_id:', ref_id);
-              await this.addReferral(ref_id, telegram_id, is_premium);
-              console.log('Referral processed successfully.');
-
-              await this.increaseBalance(telegram_id, award);
-              console.log('Balance increased for referred user by:', award);
-            } else {
-              console.log('No referral ID provided. Initializing balance...');
-              await this.increaseBalance(telegram_id, 0);
-              console.log('Balance initialized to 0.');
+            // Проверяем, что пользователь действительно был сохранен
+            if (!savedUser || !savedUser.telegram_id) {
+              throw new Error('Failed to save new user');
             }
 
-            await this.createDailyBonus(telegram_id);
-            console.log('Daily bonus created for user.');
+            // Создаем имя пользователя
+            const newUsernames = this.usernamesRepository.create({
+              telegram_id,
+              username,
+            });
+            await transactionalEntityManager.save(newUsernames);
 
-            await this.updateAfkStartTime(telegram_id, new Date());
-            console.log('AFK start time updated for user.');
+            // Логика добавления реферала, если ref_id предоставлен
+            if (ref_id) {
+              const referrer = await this.userRepository.findOne({
+                where: { telegram_id: ref_id },
+              });
+
+              if (!referrer) {
+                throw new NotFoundException('Referrer not found');
+              }
+
+              const referral = this.referralRepository.create({
+                user: referrer,
+                ref: savedUser,
+                award,
+              });
+              await transactionalEntityManager.save(referral);
+
+              // Увеличиваем баланс
+              const balance = this.balanceRepository.create({
+                telegram_id,
+                balance: award,
+              });
+              await transactionalEntityManager.save(balance);
+            } else {
+              // Увеличиваем баланс без реферала
+              const balance = this.balanceRepository.create({
+                telegram_id,
+                balance: 0,
+              });
+              await transactionalEntityManager.save(balance);
+            }
+
+            // Создаем запись для ежедневного бонуса
+            const dailyBonus = this.dailyBonusRepository.create({
+              telegram_id,
+              daily_streak: 0,
+              reward_claimed_today: false,
+            });
+            await transactionalEntityManager.save(dailyBonus);
+
+            // Устанавливаем время AFK
+            const afkFarm = this.afkFarmRepository.create({
+              telegram_id,
+              afk_start_time: new Date(),
+              coins_per_hour: 0,
+            });
+            await transactionalEntityManager.save(afkFarm);
           } catch (transactionError) {
             console.error('Error during transaction:', transactionError);
-            throw transactionError; // Пробрасываем ошибку, чтобы откатить транзакцию
+            throw transactionError; // Пробрасываем ошибку, чтобы транзакция откатилась
           }
         },
       );
 
-      console.log('Transaction completed successfully.');
       const newUser = await this.findOne(telegram_id);
-      console.log('New user retrieved from database:', newUser);
 
       const tokens = this.authService.generateTokens({
         telegram_id,
         username,
       });
-      console.log('Generated tokens for new user:', tokens);
 
       return { user: newUser, isNew: true, ...tokens };
     } catch (error) {
@@ -436,13 +453,13 @@ export class UserService {
             .filter((ref) => ref.reward_received === false) // Фильтрация по reward_received
             .map(async (ref) => {
               const username = await this.usernamesRepository.findOne({
-                where: { telegram_id: ref.ref_id },
+                where: { telegram_id: ref.ref.telegram_id },
               });
               const passiveIncome = await this.afkFarmRepository.findOne({
-                where: { telegram_id: ref.ref_id },
+                where: { telegram_id: ref.ref.telegram_id },
               });
               return {
-                ref_id: ref.ref_id,
+                ref_id: ref.ref.telegram_id,
                 reward_received: ref.reward_received,
                 award: ref.award,
                 username: username ? username.username : 'Unnamed User',
@@ -472,13 +489,13 @@ export class UserService {
     const refs = await Promise.all(
       user.referrals.map(async (ref) => {
         const username = await this.usernamesRepository.findOne({
-          where: { telegram_id: ref.ref_id },
+          where: { telegram_id: ref.ref.telegram_id },
         });
         const passiveIncome = await this.afkFarmRepository.findOne({
-          where: { telegram_id: ref.ref_id },
+          where: { telegram_id: ref.ref.telegram_id },
         });
         return {
-          ref_id: ref.ref_id,
+          ref_id: ref.ref.telegram_id,
           reward_received: ref.reward_received,
           award: ref.award,
           username: username ? username.username : 'Unnamed User',
@@ -494,12 +511,12 @@ export class UserService {
   }
 
   async addReferral(
-    telegram_id: number,
-    referral_id: number,
-    is_premium?: boolean,
+    referrerTelegramId: number,
+    referralTelegramId: number,
+    isPremium?: boolean,
   ): Promise<Referral> {
     const referrer = await this.userRepository.findOne({
-      where: { telegram_id },
+      where: { telegram_id: referrerTelegramId },
       relations: ['referrals'],
     });
 
@@ -507,12 +524,30 @@ export class UserService {
       throw new NotFoundException('Referrer not found');
     }
 
-    const referral = new Referral();
-    referral.ref_id = referral_id;
-    referral.user = referrer;
-    referral.award = is_premium ? 5000 : 750;
+    const referralUser = await this.userRepository.findOne({
+      where: { telegram_id: referralTelegramId },
+    });
 
-    referrer.referrals.push(referral);
+    if (!referralUser) {
+      throw new NotFoundException('Referral user not found');
+    }
+
+    const existingReferral = await this.referralRepository.findOne({
+      where: { user: referrer, ref: referralUser },
+    });
+
+    if (existingReferral) {
+      throw new HttpException(
+        'Referral relationship already exists',
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    const referral = this.referralRepository.create({
+      user: referrer,
+      ref: referralUser,
+      award: isPremium ? 5000 : 750,
+    });
 
     await this.referralRepository.save(referral);
 
@@ -530,7 +565,7 @@ export class UserService {
     }
 
     const referralToUpdate = await this.referralRepository.findOne({
-      where: { user: { telegram_id }, ref_id },
+      where: { user: { telegram_id }, ref: { telegram_id: ref_id } },
     });
 
     if (!referralToUpdate) {
