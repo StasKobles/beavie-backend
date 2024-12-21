@@ -8,18 +8,18 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuthService } from 'src/auth/auth.service';
 import { Quest } from 'src/quest/quest.entity';
+import { getDelayTimes } from 'src/services/getDelayTimes';
 import { Upgrade } from 'src/upgrade/upgrade.entity';
 import { Repository } from 'typeorm';
-import { ReferralResponseDto, UpdateAfkFarmDto } from './dto/user.dto';
+import { ReferralDto, UpdateAfkFarmDto } from './dto/user.dto';
 import { AfkFarm } from './entities/afk-farm.entity';
 import { Balance } from './entities/balance.entity';
 import { DailyBonus } from './entities/daily-bonus.entity';
 import { Referral } from './entities/referral.entity';
 import { UserQuest } from './entities/user-quest.entity';
 import { UserUpgrade } from './entities/user-upgrade.entity';
-import { Usernames } from './entities/usernames.entity';
-import { User } from './user.entity';
-import { getDelayTimes } from 'src/services/getDelayTimes';
+import { Username } from './entities/username.entity';
+import { Locale, User, UserStatus } from './user.entity';
 
 @Injectable()
 export class UserService {
@@ -38,8 +38,8 @@ export class UserService {
     private userUpgradeRepository: Repository<UserUpgrade>,
     @InjectRepository(AfkFarm)
     private afkFarmRepository: Repository<AfkFarm>,
-    @InjectRepository(Usernames)
-    private usernamesRepository: Repository<Usernames>,
+    @InjectRepository(Username)
+    private usernamesRepository: Repository<Username>,
     @InjectRepository(Upgrade)
     private upgradeRepository: Repository<Upgrade>,
     @InjectRepository(Quest)
@@ -58,10 +58,10 @@ export class UserService {
         'referrals',
         'userUpgrades',
         'userQuests',
-        'balances',
-        'afkFarms',
-        'dailyBonuses',
-        'usernames',
+        'balance',
+        'afkFarm',
+        'dailyBonus',
+        'username',
       ],
     });
   }
@@ -90,7 +90,6 @@ export class UserService {
     try {
       const existingUser = await this.findOne(telegram_id);
 
-      const award = is_premium ? 5000 : 750;
       if (existingUser) {
         const tokens = this.authService.generateTokens({
           telegram_id,
@@ -100,104 +99,69 @@ export class UserService {
       }
 
       if (!username || username.trim() === '') {
-        console.error('Username is missing or empty');
         throw new HttpException(
           { error: 'Username is required' },
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      await this.userRepository.manager.transaction(
+      // Награда за реферала
+      const referralAward = is_premium ? 5000 : 750;
+
+      const savedUser = await this.userRepository.manager.transaction(
         async (transactionalEntityManager) => {
-          try {
-            // Создаем нового пользователя
-            const newUser = this.userRepository.create({
-              telegram_id,
-              registered_at: new Date(),
-              status: 'active',
-              locale,
+          // Если есть ref_id, ищем реферера
+          let referrer: User | null = null;
+          let balance: number = 0;
+          if (ref_id) {
+            referrer = await transactionalEntityManager.findOne(User, {
+              where: { telegram_id: ref_id },
             });
 
-            // Сохраняем пользователя в таблицу users
-            const savedUser = await transactionalEntityManager.save(newUser);
-
-            // Проверяем, что пользователь действительно был сохранен
-            if (!savedUser || !savedUser.telegram_id) {
-              throw new Error('Failed to save new user');
+            if (!referrer) {
+              throw new NotFoundException('Referrer not found');
             }
-
-            // Создаем имя пользователя
-            const newUsernames = this.usernamesRepository.create({
-              telegram_id,
-              username,
-            });
-            await transactionalEntityManager.save(newUsernames);
-
-            // Логика добавления реферала, если ref_id предоставлен
-            if (ref_id) {
-              const referrer = await this.userRepository.findOne({
-                where: { telegram_id: ref_id },
-              });
-
-              if (!referrer) {
-                throw new NotFoundException('Referrer not found');
-              }
-
-              const referral = this.referralRepository.create({
-                user: referrer,
-                ref: savedUser,
-                award,
-              });
-              await transactionalEntityManager.save(referral);
-
-              // Увеличиваем баланс
-              const balance = this.balanceRepository.create({
-                telegram_id,
-                balance: award,
-              });
-              await transactionalEntityManager.save(balance);
-            } else {
-              // Увеличиваем баланс без реферала
-              const balance = this.balanceRepository.create({
-                telegram_id,
-                balance: 0,
-              });
-              await transactionalEntityManager.save(balance);
-            }
-
-            // Создаем запись для ежедневного бонуса
-            const dailyBonus = this.dailyBonusRepository.create({
-              telegram_id,
-              daily_streak: 0,
-              reward_claimed_today: false,
-            });
-            await transactionalEntityManager.save(dailyBonus);
-
-            // Устанавливаем время AFK
-            const afkFarm = this.afkFarmRepository.create({
-              telegram_id,
-              afk_start_time: new Date(),
-              coins_per_hour: 0,
-            });
-            await transactionalEntityManager.save(afkFarm);
-          } catch (transactionError) {
-            console.error('Error during transaction:', transactionError);
-            throw transactionError; // Пробрасываем ошибку, чтобы транзакция откатилась
+            balance = is_premium ? 5000 : 750;
           }
+
+          // Создаём нового пользователя
+          const newUser = this.userRepository.create({
+            telegram_id,
+            status: UserStatus.ACTIVE,
+            locale,
+            username: { username }, // Создаёт запись Username
+            balance: { balance }, // Создаёт запись Balance
+            afkFarm: {}, // Создаёт запись AfkFarm
+            dailyBonus: {}, // Создаёт запись DailyBonus
+            referredBy: referrer, // Устанавливаем реферера
+          });
+
+          const user = await transactionalEntityManager.save(newUser);
+
+          if (referrer) {
+            // Создаём запись о реферале
+            const referral = this.referralRepository.create({
+              user: referrer,
+              ref: user,
+              award: referralAward,
+            });
+            await transactionalEntityManager.save(referral);
+          }
+
+          return user;
         },
       );
 
-      const newUser = await this.findOne(telegram_id);
-
+      // Генерация токенов
       const tokens = this.authService.generateTokens({
         telegram_id,
         username,
       });
 
-      return { user: newUser, isNew: true, ...tokens };
+      return { user: savedUser, isNew: true, ...tokens };
     } catch (error) {
       console.error('Error initializing user:', error);
-      throw error; // Пробрасываем ошибку, чтобы обработчик наверху мог её увидеть
+      throw error;
     }
   }
 
@@ -223,7 +187,7 @@ export class UserService {
     };
   }
 
-  async changeLocale(telegram_id: number, locale: string): Promise<User> {
+  async changeLocale(telegram_id: number, locale: Locale): Promise<User> {
     const user = await this.findOne(telegram_id);
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -238,9 +202,9 @@ export class UserService {
   async createUsername(
     telegram_id: number,
     username: string,
-  ): Promise<Usernames> {
+  ): Promise<Username> {
     const newUsernames = this.usernamesRepository.create({
-      telegram_id,
+      user: { telegram_id },
       username,
     });
     return this.usernamesRepository.save(newUsernames);
@@ -248,19 +212,25 @@ export class UserService {
 
   // Balance
   async findBalance(telegram_id: number): Promise<Balance> {
-    return this.balanceRepository.findOne({ where: { telegram_id } });
+    return this.balanceRepository.findOne({ where: { user: { telegram_id } } });
   }
 
   async increaseBalance(telegram_id: number, amount: number): Promise<Balance> {
+    // Найти существующий баланс
     let balance = await this.findBalance(telegram_id);
+
+    // Если баланс не существует, создать новый
     if (!balance) {
       balance = this.balanceRepository.create({
-        telegram_id,
+        user: { telegram_id }, // Здесь устанавливается связь с пользователем
         balance: amount,
       });
     } else {
+      // Увеличить существующий баланс
       balance.balance = Number(balance.balance) + amount;
     }
+
+    // Сохранить изменения в базе данных
     return this.balanceRepository.save(balance);
   }
 
@@ -288,11 +258,11 @@ export class UserService {
     const leaderBoard = await Promise.all(
       topBalances.map(async (balance, index) => {
         const username = await this.usernamesRepository.findOne({
-          where: { telegram_id: balance.telegram_id },
+          where: { user: { telegram_id: balance.user.telegram_id } },
         });
         return {
           rank: index + 1,
-          telegram_id: balance.telegram_id,
+          telegram_id: balance.user.telegram_id,
           balance: balance.balance,
           username: username ? username.username : 'Unnamed User',
         };
@@ -310,12 +280,14 @@ export class UserService {
 
   // Daily Bonus
   async findDailyBonus(telegram_id: number): Promise<DailyBonus> {
-    return this.dailyBonusRepository.findOne({ where: { telegram_id } });
+    return this.dailyBonusRepository.findOne({
+      where: { user: { telegram_id } },
+    });
   }
 
   async createDailyBonus(telegram_id: number): Promise<DailyBonus> {
     const dailyBonus = this.dailyBonusRepository.create({
-      telegram_id,
+      user: { telegram_id },
       daily_streak: 0,
       reward_claimed_today: false,
     });
@@ -368,7 +340,7 @@ export class UserService {
   // AFK Farm
   async findAfkFarm(telegram_id: number): Promise<AfkFarm> {
     const afkFarm = await this.afkFarmRepository.findOne({
-      where: { telegram_id },
+      where: { user: { telegram_id } },
     });
     if (!afkFarm) {
       throw new NotFoundException('AFK farm record not found');
@@ -377,7 +349,9 @@ export class UserService {
   }
 
   async findAllAfkFarms(): Promise<AfkFarm[]> {
-    return this.afkFarmRepository.find();
+    return this.afkFarmRepository.find({
+      relations: ['user'], // Указываем, что нужно загрузить связанные данные
+    });
   }
 
   async updateAfkStartTime(
@@ -385,11 +359,11 @@ export class UserService {
     afk_start_time: Date,
   ): Promise<AfkFarm> {
     let afkFarm = await this.afkFarmRepository.findOne({
-      where: { telegram_id },
+      where: { user: { telegram_id } },
     });
     if (!afkFarm) {
       afkFarm = this.afkFarmRepository.create({
-        telegram_id,
+        user: { telegram_id },
         afk_start_time,
         coins_per_hour: 0,
       });
@@ -401,7 +375,7 @@ export class UserService {
 
   async updateAfkFarm(updateAfkFarmDto: UpdateAfkFarmDto): Promise<AfkFarm> {
     let afkFarm = await this.afkFarmRepository.findOne({
-      where: { telegram_id: updateAfkFarmDto.telegram_id },
+      where: { user: { telegram_id: updateAfkFarmDto.telegram_id } },
     });
     if (!afkFarm) {
       afkFarm = this.afkFarmRepository.create(updateAfkFarmDto);
@@ -421,11 +395,11 @@ export class UserService {
     const leaderBoard = await Promise.all(
       topEarnings.map(async (afkFarm, index) => {
         const username = await this.usernamesRepository.findOne({
-          where: { telegram_id: afkFarm.telegram_id },
+          where: { user: { telegram_id: afkFarm.user.telegram_id } },
         });
         return {
           rank: index + 1,
-          telegram_id: afkFarm.telegram_id,
+          telegram_id: afkFarm.user.telegram_id,
           coins_per_hour: afkFarm.coins_per_hour,
           username: username ? username.username : 'Unnamed User',
         };
@@ -435,11 +409,17 @@ export class UserService {
     return leaderBoard;
   }
 
-  // Referrals
-  async findAllReferrals(): Promise<ReferralResponseDto[]> {
-    const referrals = await this.referralRepository.find({
-      relations: ['user'],
+  async findAllReferrals(telegram_id: number): Promise<ReferralDto[]> {
+    const user = await this.userRepository.findOne({
+      where: { telegram_id },
+      relations: ['referrals', 'referrals.ref'],
     });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const referrals = user.referrals;
 
     if (!referrals || referrals.length === 0) {
       // Если рефералов нет, возвращаем пустой массив
@@ -448,66 +428,59 @@ export class UserService {
 
     return await Promise.all(
       referrals.map(async (referral) => {
-        const refs = await Promise.all(
-          (referral.user.referrals || [])
-            .filter((ref) => ref.reward_received === false) // Фильтрация по reward_received
-            .map(async (ref) => {
-              const username = await this.usernamesRepository.findOne({
-                where: { telegram_id: ref.ref.telegram_id },
-              });
-              const passiveIncome = await this.afkFarmRepository.findOne({
-                where: { telegram_id: ref.ref.telegram_id },
-              });
-              return {
-                ref_id: ref.ref.telegram_id,
-                reward_received: ref.reward_received,
-                award: ref.award,
-                username: username ? username.username : 'Unnamed User',
-                passiveIncome: passiveIncome ? passiveIncome.coins_per_hour : 0,
-              };
-            }),
-        );
-
-        // Сортировка по passiveIncome от большего к меньшему
-        refs.sort((a, b) => b.passiveIncome - a.passiveIncome);
-
-        return { telegram_id: referral.user.telegram_id, ref_ids: refs };
-      }),
-    );
-  }
-
-  async findReferral(telegram_id: number): Promise<ReferralResponseDto> {
-    const user = await this.userRepository.findOne({
-      where: { telegram_id },
-      relations: ['referrals'],
-    });
-
-    if (!user || !user.referrals.length) {
-      throw new NotFoundException('No refs found for this user');
-    }
-
-    const refs = await Promise.all(
-      user.referrals.map(async (ref) => {
+        const ref = referral.ref;
         const username = await this.usernamesRepository.findOne({
-          where: { telegram_id: ref.ref.telegram_id },
+          where: { user: { telegram_id: ref.telegram_id } },
         });
         const passiveIncome = await this.afkFarmRepository.findOne({
-          where: { telegram_id: ref.ref.telegram_id },
+          where: { user: { telegram_id: ref.telegram_id } },
         });
+
         return {
-          ref_id: ref.ref.telegram_id,
-          reward_received: ref.reward_received,
-          award: ref.award,
+          ref_id: ref.telegram_id,
+          reward_received: referral.reward_received,
+          award: referral.award,
           username: username ? username.username : 'Unnamed User',
           passiveIncome: passiveIncome ? passiveIncome.coins_per_hour : 0,
         };
       }),
     );
+  }
 
-    // Сортировка по passiveIncome от большего к меньшему
-    refs.sort((a, b) => b.passiveIncome - a.passiveIncome);
+  async findReferral(
+    telegram_id: number,
+    ref_id: number,
+  ): Promise<ReferralDto> {
+    // Ищем реферальную запись для указанного пользователя и реферала
+    const referral = await this.referralRepository.findOne({
+      where: {
+        user: { telegram_id },
+        ref: { telegram_id: ref_id },
+      },
+      relations: ['ref'], // Загружаем данные реферала
+    });
 
-    return { telegram_id: user.telegram_id, ref_ids: refs };
+    if (!referral) {
+      throw new NotFoundException('Referral not found');
+    }
+
+    // Получаем имя реферала
+    const username = await this.usernamesRepository.findOne({
+      where: { user: { telegram_id: ref_id } },
+    });
+
+    // Получаем пассивный доход реферала
+    const passiveIncome = await this.afkFarmRepository.findOne({
+      where: { user: { telegram_id: ref_id } },
+    });
+
+    return {
+      ref_id: ref_id,
+      reward_received: referral.reward_received,
+      award: referral.award,
+      username: username ? username.username : 'Unnamed User',
+      passiveIncome: passiveIncome ? passiveIncome.coins_per_hour : 0,
+    };
   }
 
   async addReferral(
@@ -609,8 +582,8 @@ export class UserService {
         );
       }
     } else if (quest.quest_method === 'REF') {
-      const userReferrals = await this.findReferral(telegram_id);
-      if (userReferrals.ref_ids.length < quest.ref_count) {
+      const userReferrals = await this.findAllReferrals(telegram_id);
+      if (userReferrals.length < quest.ref_count) {
         throw new BadRequestException(
           `User referrals are less than the required count: ${quest.ref_count}`,
         );
@@ -685,7 +658,7 @@ export class UserService {
     if (userUpgrade) {
       currentLevel = userUpgrade.level;
       userUpgrade.level = level;
-      userUpgrade.upgraded_at = new Date();
+      userUpgrade.updated_at = new Date();
 
       await this.userUpgradeRepository.save(userUpgrade);
     } else {
@@ -693,7 +666,7 @@ export class UserService {
         user,
         upgrade,
         level,
-        upgraded_at: new Date(),
+        updated_at: new Date(),
       });
     }
 
@@ -715,7 +688,7 @@ export class UserService {
 
     // После успешного апгрейда уровня
     userUpgrade.level = level;
-    userUpgrade.upgraded_at = new Date();
+    userUpgrade.updated_at = new Date();
 
     const delay = getDelayTimes(level);
     userUpgrade.cooldown_ends_at =

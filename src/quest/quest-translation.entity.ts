@@ -1,7 +1,18 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  Unique,
+} from 'typeorm';
 import { Quest } from './quest.entity';
+import { Locale } from 'src/user/user.entity';
 
 @Entity('quest_translations')
+@Unique(['quest', 'locale'])
 export class QuestTranslation {
   @PrimaryGeneratedColumn()
   id: number;
@@ -12,14 +23,18 @@ export class QuestTranslation {
   quest: Quest;
 
   @Column()
-  quest_id: number;
-
-  @Column()
-  locale: string;
+  @Index()
+  locale: Locale;
 
   @Column()
   name: string;
 
   @Column('text')
   description: string;
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

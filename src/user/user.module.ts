@@ -10,7 +10,7 @@ import { DailyBonus } from 'src/user/entities/daily-bonus.entity';
 import { Referral } from 'src/user/entities/referral.entity';
 import { UserQuest } from 'src/user/entities/user-quest.entity';
 import { UserUpgrade } from 'src/user/entities/user-upgrade.entity';
-import { Usernames } from 'src/user/entities/usernames.entity';
+import { Username } from 'src/user/entities/username.entity';
 import { UserController } from './user.controller';
 import { User } from './user.entity';
 import { UserService } from './user.service';
@@ -26,7 +26,7 @@ import { AuthModule } from 'src/auth/auth.module';
       Balance,
       AfkFarm,
       DailyBonus,
-      Usernames,
+      Username,
       Upgrade,
       Quest,
     ]),

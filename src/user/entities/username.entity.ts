@@ -1,25 +1,25 @@
 import {
-  Column,
-  CreateDateColumn,
   Entity,
-  JoinColumn,
-  OneToOne,
+  Column,
   PrimaryGeneratedColumn,
+  OneToOne,
+  JoinColumn,
+  CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../user.entity';
 
-@Entity('balances')
-export class Balance {
+@Entity('usernames')
+export class Username {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => User, (user) => user.balance, { onDelete: 'CASCADE' })
+  @Column()
+  username: string;
+
+  @OneToOne(() => User, (user) => user.username, { onDelete: 'CASCADE' })
   @JoinColumn()
   user: User;
-
-  @Column({ type: 'numeric', default: 0 })
-  balance: number;
 
   @CreateDateColumn()
   created_at: Date;

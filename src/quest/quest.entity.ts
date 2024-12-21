@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  UpdateDateColumn,
+  CreateDateColumn,
+} from 'typeorm';
 import { QuestTranslation } from './quest-translation.entity';
 
 @Entity('quests')
@@ -27,6 +34,14 @@ export class Quest {
   @Column()
   logo_url: string;
 
-  @OneToMany(() => QuestTranslation, (translation) => translation.quest)
+  @OneToMany(() => QuestTranslation, (translation) => translation.quest, {
+    cascade: true,
+  })
   translations: QuestTranslation[];
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

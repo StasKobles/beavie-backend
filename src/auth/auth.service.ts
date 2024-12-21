@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
+import { Locale } from 'src/user/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -51,7 +52,7 @@ export class AuthService {
 
   extractUserData(initData: string): {
     is_premium: boolean;
-    locale: string;
+    locale: Locale;
     username: string;
     telegram_id: number;
   } {

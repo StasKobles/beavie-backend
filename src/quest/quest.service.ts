@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Quest } from './quest.entity';
 import { QuestTranslation } from './quest-translation.entity';
+import { Locale } from 'src/user/user.entity';
 
 interface QuestWithTranslations extends Quest {
   name: string;
@@ -18,13 +19,13 @@ export class QuestService {
     private translationRepository: Repository<QuestTranslation>,
   ) {}
 
-  async findAll(locale: string): Promise<QuestWithTranslations[]> {
+  async findAll(locale: Locale): Promise<QuestWithTranslations[]> {
     const quests = await this.questRepository.find();
 
     const translatedQuests = await Promise.all(
       quests.map(async (quest) => {
         const translation = await this.translationRepository.findOne({
-          where: { quest_id: quest.quest_id, locale },
+          where: { quest, locale },
         });
 
         return {
@@ -42,7 +43,7 @@ export class QuestService {
 
   async findOne(
     quest_id: number,
-    locale: string,
+    locale: Locale,
   ): Promise<QuestWithTranslations> {
     const quest = await this.questRepository.findOne({ where: { quest_id } });
     if (!quest) {
@@ -50,7 +51,7 @@ export class QuestService {
     }
 
     const translation = await this.translationRepository.findOne({
-      where: { quest_id, locale },
+      where: { quest, locale },
     });
 
     return {

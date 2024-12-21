@@ -1,8 +1,18 @@
-// upgrade-translation.entity.ts
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  Unique,
+} from 'typeorm';
 import { Upgrade } from './upgrade.entity';
+import { Locale } from 'src/user/user.entity';
 
 @Entity('upgrade_translations')
+@Unique(['upgrade', 'locale']) // Уникальность для сущности и языка
 export class UpgradeTranslation {
   @PrimaryGeneratedColumn()
   id: number;
@@ -13,14 +23,18 @@ export class UpgradeTranslation {
   upgrade: Upgrade;
 
   @Column()
-  upgrade_id: number;
-
-  @Column()
-  locale: string;
+  @Index() // Индексация для ускорения запросов
+  locale: Locale;
 
   @Column()
   name: string;
 
   @Column('text')
   description: string;
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

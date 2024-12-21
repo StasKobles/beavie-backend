@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { UpgradeTranslation } from './upgrade_translations.entity';
 
 @Entity('upgrades')
@@ -24,6 +31,14 @@ export class Upgrade {
   @Column('text', { nullable: true })
   image_url: string;
 
-  @OneToMany(() => UpgradeTranslation, (translation) => translation.upgrade)
+  @OneToMany(() => UpgradeTranslation, (translation) => translation.upgrade, {
+    cascade: true,
+  })
   translations: UpgradeTranslation[];
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

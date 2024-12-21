@@ -26,7 +26,10 @@ export class BalanceUpdateService {
       const incomePerSecond = afkFarm.coins_per_hour / 3600;
       const incomeEarned = incomePerSecond * 5; // Начисляем доход за 5 секунд
 
-      await this.userService.increaseBalance(afkFarm.telegram_id, incomeEarned);
+      await this.userService.increaseBalance(
+        afkFarm.user.telegram_id,
+        incomeEarned,
+      );
     }
   }
 }

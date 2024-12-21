@@ -20,13 +20,13 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from 'src/auth/auth.service';
 import { GetUser } from 'src/decorators/get-user.decorator';
-import { InitUserDto, ReferralResponseDto } from './dto/user.dto';
+import { Public } from 'src/decorators/public.decorator';
+import { InitUserDto, ReferralDto } from './dto/user.dto';
 import { Balance } from './entities/balance.entity';
 import { UserQuest } from './entities/user-quest.entity';
 import { UserUpgrade } from './entities/user-upgrade.entity';
-import { User } from './user.entity';
+import { Locale, User } from './user.entity';
 import { UserService } from './user.service';
-import { Public } from 'src/decorators/public.decorator';
 
 export class UserResponse {
   @ApiProperty({ type: User })
@@ -133,7 +133,7 @@ export class UserController {
   })
   async changeLocale(
     @GetUser('telegram_id') telegram_id: number,
-    @Body() data: { locale: string },
+    @Body() data: { locale: Locale },
   ): Promise<User> {
     try {
       return await this.userService.changeLocale(telegram_id, data.locale);
@@ -245,33 +245,17 @@ export class UserController {
   }
 
   @ApiBearerAuth()
-  @Get('referral')
-  @ApiOperation({ summary: 'Get referral info' })
-  async findReferral(
-    @GetUser('telegram_id') telegram_id: number,
-  ): Promise<ReferralResponseDto> {
-    return await this.userService.findReferral(telegram_id);
-  }
-
-  @ApiBearerAuth()
-  @Get('referral/all')
-  @ApiOperation({ summary: 'Get all referrals' })
+  @Get('referrals')
+  @ApiOperation({ summary: 'Get all referrals for the user' })
   @ApiResponse({
     status: 200,
     description: 'Successful',
     type: [ReferralResponse],
   })
-  async findAllReferrals(): Promise<ReferralResponseDto[]> {
-    try {
-      return await this.userService.findAllReferrals();
-    } catch (error) {
-      throw new HttpException(
-        { error: error.message },
-        error instanceof NotFoundException
-          ? HttpStatus.NOT_FOUND
-          : HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+  async getAllReferrals(
+    @GetUser('telegram_id') telegram_id: number,
+  ): Promise<ReferralDto[]> {
+    return this.userService.findAllReferrals(telegram_id);
   }
 
   @ApiBearerAuth()

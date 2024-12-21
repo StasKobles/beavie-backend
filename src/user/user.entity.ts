@@ -1,11 +1,31 @@
-import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm';
-import { Referral } from './entities/referral.entity';
-import { UserUpgrade } from './entities/user-upgrade.entity';
-import { UserQuest } from './entities/user-quest.entity';
-import { Balance } from './entities/balance.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  PrimaryColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { AfkFarm } from './entities/afk-farm.entity';
+import { Balance } from './entities/balance.entity';
 import { DailyBonus } from './entities/daily-bonus.entity';
-import { Usernames } from './entities/usernames.entity';
+import { Referral } from './entities/referral.entity';
+import { UserQuest } from './entities/user-quest.entity';
+import { UserUpgrade } from './entities/user-upgrade.entity';
+import { Username } from './entities/username.entity';
+
+export enum Locale {
+  EN = 'en',
+  RU = 'ru',
+}
+
+export enum UserStatus {
+  ACTIVE = 'active',
+  BANNED = 'banned',
+  DELETED = 'deleted',
+}
 
 @Entity('users')
 export class User {
@@ -13,19 +33,22 @@ export class User {
   telegram_id: number;
 
   @Column()
-  registered_at: Date;
-
-  @Column()
-  status: string;
+  status: UserStatus;
 
   @Column({ type: 'varchar', length: 2, default: 'en' })
-  locale: string;
+  locale: Locale;
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 
   @OneToMany(() => Referral, (referral) => referral.user)
-  referrals: Referral[];
+  referrals: Referral[]; // Много приглашённых
 
-  @OneToMany(() => Referral, (referral) => referral.ref)
-  referredBy: Referral[];
+  @ManyToOne(() => User, (user) => user.referrals, { onDelete: 'CASCADE' })
+  referredBy: User; // Один пригласивший для текущего пользователя
 
   @OneToMany(() => UserUpgrade, (userUpgrade) => userUpgrade.user)
   userUpgrades: UserUpgrade[];
@@ -33,15 +56,17 @@ export class User {
   @OneToMany(() => UserQuest, (userQuest) => userQuest.user)
   userQuests: UserQuest[];
 
-  @OneToMany(() => Balance, (balance) => balance.user)
-  balances: Balance[];
+  @OneToOne(() => Balance, (balance) => balance.user, { cascade: true })
+  balance: Balance;
 
-  @OneToMany(() => AfkFarm, (afkFarm) => afkFarm.user)
-  afkFarms: AfkFarm[];
+  @OneToOne(() => AfkFarm, (afkFarm) => afkFarm.user, { cascade: true })
+  afkFarm: AfkFarm;
 
-  @OneToMany(() => DailyBonus, (dailyBonus) => dailyBonus.user)
-  dailyBonuses: DailyBonus[];
+  @OneToOne(() => DailyBonus, (dailyBonus) => dailyBonus.user, {
+    cascade: true,
+  })
+  dailyBonus: DailyBonus;
 
-  @OneToMany(() => Usernames, (username) => username.user)
-  usernames: Usernames[];
+  @OneToOne(() => Username, (username) => username.user, { cascade: true })
+  username: Username;
 }

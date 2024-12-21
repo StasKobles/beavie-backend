@@ -37,10 +37,6 @@ export class ReferralDto {
   passiveIncome: number;
 }
 
-export class ReferralResponseDto {
-  telegram_id: number;
-  ref_ids: ReferralDto[];
-}
 export class UpdateAfkFarmDto {
   telegram_id: number;
   coins_per_hour: number;
