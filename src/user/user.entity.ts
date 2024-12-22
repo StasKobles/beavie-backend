@@ -15,6 +15,7 @@ import { Referral } from './entities/referral.entity';
 import { UserQuest } from './entities/user-quest.entity';
 import { UserUpgrade } from './entities/user-upgrade.entity';
 import { Username } from './entities/username.entity';
+import { Wallet } from 'src/wallet/wallet.entity';
 
 export enum Locale {
   EN = 'en',
@@ -69,4 +70,10 @@ export class User {
 
   @OneToOne(() => Username, (username) => username.user, { cascade: true })
   username: Username;
+
+  @OneToOne(() => Wallet, (wallet) => wallet.user, {
+    cascade: true,
+    nullable: true,
+  }) // Новая связь
+  wallet: Wallet; // Связь с кошельком
 }

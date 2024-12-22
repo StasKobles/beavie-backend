@@ -10,6 +10,7 @@ import { InvoiceModule } from './invoice/invoice.module';
 import { QuestModule } from './quest/quest.module';
 import { UpgradeModule } from './upgrade/upgrade.module';
 import { UserModule } from './user/user.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { UserModule } from './user/user.module';
     AuthModule,
     BalanceUpdateModule,
     InvoiceModule,
+    WalletModule,
   ],
   providers: [
     {
